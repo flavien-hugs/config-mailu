@@ -7,7 +7,7 @@
 # ---- Secrets ----
 # mailu/mailu.env holds SECRET_KEY and INITIAL_ADMIN_PW in cleartext.
 # The tracked template is mailu/mailu.env.example.
-# mailu.env is also passed to compose with --env-file (MAILU_VERSION, FRONT_*).
+# mailu.env is passed to compose with --env-file; compose.yml maps its values per service.
 mailu.env
 !mailu.env.example
 *.pem

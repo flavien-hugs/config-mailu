@@ -8,7 +8,7 @@ banc d'essai avant un déploiement sur un VPS.
 ```
 mailu/
   compose.yml        définition de la stack (13 services)
-  mailu.env          toute la configuration (--env-file) — SECRETS, ignoré par git
+  mailu.env          valeurs de configuration (--env-file) — SECRETS, ignoré par git
   mailu.env.example  modèle sans secrets, versionné
   overrides/         surcharges de config par service, montées en lecture seule
   postgres/initdb/   crée les rôles et bases mailu + roundcube au premier démarrage
@@ -27,19 +27,31 @@ La stack se lance toujours en indiquant le fichier d'environnement :
 cd mailu && docker compose --env-file mailu.env up -d
 ```
 
-`mailu.env` sert alors deux fois :
+`mailu.env` ne contient que des **valeurs**. C'est `compose.yml` qui décide
+quel service reçoit quelle variable, dans ses blocs `environment:` :
 
-- `--env-file` remplace les `${...}` de `compose.yml` (`MAILU_VERSION`,
-  `FRONT_*`, `PROXY_NETWORK`). Sans lui, compose refuse de démarrer
-  (« lancer avec --env-file mailu.env »).
-- `env_file:` injecte ses variables dans les conteneurs : `--env-file` ne
-  transmet *rien* à l'intérieur d'un conteneur. Le chemin n'est pas écrit en
-  dur dans `compose.yml` : il vient de `MAILU_ENV_FILE`, défini dans le
-  fichier lui-même. Pour un autre environnement (ex. `prod.env`), passer
-  `--env-file prod.env` et y mettre `MAILU_ENV_FILE=prod.env`. Chaque service
-  Mailu doit fusionner l'anchor `*env` (`<<: [*restart, *env, ...]` dans
-  `compose.yml`). Si un service la perd, la stack démarre quand même, mais ce
-  service tourne sans aucune configuration.
+| Bloc / service      | Variables reçues                                          |
+|---------------------|-----------------------------------------------------------|
+| `x-mailu-env`       | config Mailu commune (domaine, TLS, limites, web…)        |
+| `admin`             | commun + `DB_*` + `INITIAL_ADMIN_*`                       |
+| `webmail`           | commun + `ROUNDCUBE_DB_*` + `ROUNDCUBE_PLUGINS`           |
+| `front`             | commun + `VIRTUAL_*`, `LETSENCRYPT_HOST`, `TLS_*_FILENAME`|
+| `fetchmail`         | commun + `FETCHMAIL_DELAY`                                |
+| `resolver`, `imap`, `smtp`, `antispam` | commun seulement                       |
+| `database`          | `POSTGRES_PASSWORD`, `DB_*`, `ROUNDCUBE_DB_*` (aucune config Mailu) |
+
+Dans ces blocs :
+
+- `VAR:` sans valeur reprend `VAR` de `mailu.env`. Absente de `mailu.env`,
+  elle n'est pas définie dans le conteneur et Mailu applique sa valeur par
+  défaut.
+- `${VAR:?...}` est obligatoire (`SECRET_KEY`, `DOMAIN`, `HOSTNAMES`, mots de
+  passe) : compose refuse de démarrer si elle manque.
+- Ajouter une variable dans `mailu.env` ne suffit pas : il faut aussi la
+  déclarer dans le bon bloc de `compose.yml`, sinon aucun conteneur ne la voit.
+
+Pour un autre environnement, il suffit d'un autre fichier de valeurs :
+`docker compose --env-file prod.env up -d`.
 
 Toutes les commandes `docker compose` (y compris `ps`, `logs`, `exec`) ont
 besoin de `--env-file`. Pour ne pas le répéter dans un terminal :
@@ -127,11 +139,11 @@ swaks --to admin@mail.localhost.com --server 127.0.0.1:25    # si swaks est inst
 
 Avant chaque démarrage, vérifier que la configuration atteint bien les
 conteneurs — une inspection de l'éditeur a déjà supprimé ces lignes sans
-prévenir. Cette commande compte les services qui reçoivent réellement
-`mailu.env` une fois les anchors résolues par compose :
+prévenir. Cette commande compte les services qui reçoivent réellement la
+config Mailu commune une fois les anchors résolues par compose :
 
 ```sh
-cd mailu && docker compose --env-file mailu.env config | grep -c '^      DOMAIN:'   # attendu : 9
+cd mailu && docker compose --env-file mailu.env config | grep -c '^      DOMAIN:'   # attendu : 8
 ```
 
 ## Version allégée
@@ -151,18 +163,15 @@ Sur le serveur, Mailu tourne derrière nginx-proxy + acme-companion, déjà en
 place. Tout se règle dans le `mailu.env` du serveur ; `compose.yml` ne change
 pas.
 
-Le service `front` reçoit `VIRTUAL_HOST`, `VIRTUAL_PORT` et `LETSENCRYPT_HOST`
-à partir de `FRONT_VIRTUAL_HOST`, `FRONT_VIRTUAL_PORT` et
-`FRONT_LETSENCRYPT_HOST`. Le préfixe `FRONT_` est volontaire : sous leur vrai
-nom, `env_file:` les donnerait aux 9 conteneurs Mailu, et nginx-proxy
-routerait le domaine vers chacun d'eux. `front` rejoint aussi le réseau de
+`VIRTUAL_HOST`, `VIRTUAL_PORT` et `LETSENCRYPT_HOST` ne sont transmis qu'au
+service `front` : nginx-proxy ne route le domaine que vers lui. `front` rejoint aussi le réseau de
 nginx-proxy (`PROXY_NETWORK`). En local, ce réseau doit exister :
 `docker network create nginx-proxy`.
 
 Dans `mailu.env` du serveur :
 
 - Proxy :
-  - `FRONT_VIRTUAL_HOST` et `FRONT_LETSENCRYPT_HOST` = le nom public
+  - `VIRTUAL_HOST` et `LETSENCRYPT_HOST` = le nom public
     (le même que `HOSTNAMES`) ;
   - `FRONT_HTTP_PORT=127.0.0.1:8080` et `FRONT_HTTPS_PORT=127.0.0.1:8443` :
     80 / 443 appartiennent à nginx-proxy ;

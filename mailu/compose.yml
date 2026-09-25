@@ -3,8 +3,9 @@
 #
 #   docker compose --env-file mailu.env up -d
 #
-# mailu.env sert deux fois : --env-file remplace les ${...} de ce fichier,
-# et env_file (ci-dessous) injecte ses variables dans les conteneurs.
+# mailu.env ne contient que des valeurs : --env-file les substitue aux
+# ${...} de ce fichier. C'est ici que chaque service reçoit ses variables,
+# et seulement celles qui le concernent.
 # ---------------------------------------------
 
 # ---------------------------------------------
@@ -15,13 +16,85 @@
 x-restart: &restart
   restart: always
 
-# Configuration d'exécution. Chaque service Mailu en a besoin :
-# --env-file ne transmet rien à l'intérieur des conteneurs, il faut donc
-# redonner le chemin ici. MAILU_ENV_FILE est défini dans le fichier passé
-# à --env-file lui-même : un seul endroit à changer par environnement.
-x-env: &env
-  env_file:
-    - ${MAILU_ENV_FILE:?à définir dans le fichier passé à --env-file}
+# Configuration commune à tous les services Mailu. Les variables propres
+# à un service (base de données, compte admin initial, proxy) sont
+# déclarées dans ce service seulement, via `<<: *mailu-env` + ses ajouts.
+#
+# `VAR:` sans valeur = reprise telle quelle de mailu.env ; absente de
+# mailu.env, elle n'est pas définie dans le conteneur et Mailu applique
+# sa valeur par défaut. `${VAR:?...}` = obligatoire.
+x-mailu-env: &mailu-env
+  SECRET_KEY: ${SECRET_KEY:?à définir dans mailu.env}
+  SUBNET:
+  DOMAIN: ${DOMAIN:?à définir dans mailu.env}
+  HOSTNAMES: ${HOSTNAMES:?à définir dans mailu.env}
+  POSTMASTER:
+  TLS_FLAVOR:
+  DISABLE_STATISTICS:
+  ADMIN:
+  WEBMAIL:
+  API:
+  WEBDAV:
+  ANTIVIRUS:
+  SCAN_MACROS:
+  MESSAGE_SIZE_LIMIT:
+  MESSAGE_RATELIMIT:
+  RELAYNETS:
+  RELAYHOST:
+  FETCHMAIL_ENABLED:
+  RECIPIENT_DELIMITER:
+  DMARC_RUA:
+  DMARC_RUF:
+  DMARC_SEND_REPORTS:
+  WELCOME:
+  WELCOME_SUBJECT:
+  WELCOME_BODY:
+  COMPRESSION:
+  COMPRESSION_LEVEL:
+  FULL_TEXT_SEARCH:
+  FULL_TEXT_SEARCH_ATTACHMENTS:
+  WEBROOT_REDIRECT:
+  WEB_ADMIN:
+  WEB_WEBMAIL:
+  WEB_API:
+  SITENAME:
+  WEBSITE:
+  CREDENTIAL_ROUNDS:
+  REAL_IP_HEADER:
+  REAL_IP_FROM:
+  REJECT_UNLISTED_RECIPIENT:
+  LOG_LEVEL:
+  TZ:
+  DEFAULT_SPAM_THRESHOLD:
+  API_TOKEN:
+  SESSION_COOKIE_SECURE:
+  PORTS:
+  ANTIVIRUS_ACTION:
+  AUTH_RATELIMIT_IP:
+  AUTH_RATELIMIT_USER:
+  AUTH_REQUIRE_TOKENS:
+  DEFAULT_QUOTA:
+  LETSENCRYPT_SHORTCHAIN:
+  OUTBOUND_TLS_LEVEL:
+  PERMANENT_SESSION_LIFETIME:
+  SESSION_TIMEOUT:
+  TLS_PERMISSIVE:
+
+# Accès PostgreSQL de Mailu (admin), repris par database pour l'init.
+x-db-env: &db-env
+  DB_FLAVOR: postgresql
+  DB_HOST: database
+  DB_NAME:
+  DB_USER:
+  DB_PW: ${DB_PW:?à définir dans mailu.env}
+
+# Accès PostgreSQL de Roundcube (webmail), repris par database pour l'init.
+x-roundcube-db-env: &roundcube-db-env
+  ROUNDCUBE_DB_FLAVOR: postgresql
+  ROUNDCUBE_DB_HOST: database
+  ROUNDCUBE_DB_NAME:
+  ROUNDCUBE_DB_USER:
+  ROUNDCUBE_DB_PW: ${ROUNDCUBE_DB_PW:?à définir dans mailu.env}
 
 # Résolveur DNS interne (unbound), à IP fixe sur le réseau default.
 x-dns: &dns
@@ -54,8 +127,10 @@ services:
   # ---------------------------------------------
 
   resolver:
-    <<: [*restart, *env]
+    <<: *restart
     image: ghcr.io/mailu/unbound:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    environment: *mailu-env
 
     networks:
       default:
@@ -68,16 +143,18 @@ services:
   # ---------------------------------------------
 
   front:
-    <<: [*restart, *env, *dns]
+    <<: [*restart, *dns]
     image: ghcr.io/mailu/nginx:${MAILU_VERSION:?lancer avec --env-file mailu.env}
 
-    # Lus par nginx-proxy / acme-companion. Préfixés FRONT_ dans mailu.env :
-    # sous leur vrai nom, env_file les donnerait aux 9 conteneurs et
-    # nginx-proxy routerait le domaine vers chacun d'eux.
     environment:
-      VIRTUAL_HOST: ${FRONT_VIRTUAL_HOST:-}
-      VIRTUAL_PORT: ${FRONT_VIRTUAL_PORT:-80}
-      LETSENCRYPT_HOST: ${FRONT_LETSENCRYPT_HOST:-}
+      <<: *mailu-env
+      # Lus par nginx-proxy / acme-companion, posés sur front seulement.
+      VIRTUAL_HOST:
+      VIRTUAL_PORT:
+      LETSENCRYPT_HOST:
+      # Certificat du TLS mail, relatif à /certs.
+      TLS_CERT_FILENAME:
+      TLS_KEYPAIR_FILENAME:
 
     ports:
       # Sur le serveur, 80 / 443 appartiennent à nginx-proxy : lier ailleurs
@@ -119,8 +196,14 @@ services:
   # ---------------------------------------------
 
   database:
-    <<: [*restart, *env]
+    <<: *restart
     image: postgres:16-alpine
+
+    # Pas de config Mailu : seulement le superutilisateur et les accès
+    # lus par postgres/initdb/01-mailu.sh.
+    environment:
+      <<: [*db-env, *roundcube-db-env]
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?à définir dans mailu.env}
 
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -141,8 +224,15 @@ services:
   # ---------------------------------------------
 
   admin:
-    <<: [*restart, *env, *dns]
+    <<: [*restart, *dns]
     image: ghcr.io/mailu/admin:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    environment:
+      <<: [*mailu-env, *db-env]
+      INITIAL_ADMIN_ACCOUNT:
+      INITIAL_ADMIN_DOMAIN:
+      INITIAL_ADMIN_PW: ${INITIAL_ADMIN_PW:?à définir dans mailu.env}
+      INITIAL_ADMIN_MODE:
 
     volumes:
       - ./data:/data
@@ -166,8 +256,10 @@ services:
   # ---------------------------------------------
 
   imap:
-    <<: [*restart, *env, *dns]
+    <<: [*restart, *dns]
     image: ghcr.io/mailu/dovecot:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    environment: *mailu-env
 
     volumes:
       - ./mail:/mail
@@ -186,8 +278,10 @@ services:
   # ---------------------------------------------
 
   smtp:
-    <<: [*restart, *env, *dns]
+    <<: [*restart, *dns]
     image: ghcr.io/mailu/postfix:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    environment: *mailu-env
 
     volumes:
       - mailqueue:/queue
@@ -222,8 +316,10 @@ services:
   # ---------------------------------------------
 
   antispam:
-    <<: [*restart, *env, *dns]
+    <<: [*restart, *dns]
     image: ghcr.io/mailu/rspamd:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    environment: *mailu-env
     hostname: antispam
 
     volumes:
@@ -289,8 +385,12 @@ services:
   # ---------------------------------------------
 
   fetchmail:
-    <<: [*restart, *env, *dns]
+    <<: [*restart, *dns]
     image: ghcr.io/mailu/fetchmail:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    environment:
+      <<: *mailu-env
+      FETCHMAIL_DELAY:
 
     volumes:
       - ./data/fetchmail:/data
@@ -312,8 +412,12 @@ services:
   # ---------------------------------------------
 
   webmail:
-    <<: [*restart, *env]
+    <<: *restart
     image: ghcr.io/mailu/webmail:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    environment:
+      <<: [*mailu-env, *roundcube-db-env]
+      ROUNDCUBE_PLUGINS:
 
     volumes:
       - ./webmail:/data
