@@ -1,0 +1,32 @@
+# ---- macOS ----
+.DS_Store
+
+# ---- JetBrains ----
+.idea/
+
+# ---- Secrets ----
+# mailu/mailu.env holds SECRET_KEY and INITIAL_ADMIN_PW in cleartext.
+# The tracked template is mailu/mailu.env.example.
+# mailu.env is also passed to compose with --env-file (MAILU_VERSION, FRONT_*).
+mailu.env
+!mailu.env.example
+*.pem
+*.key
+
+# ---- Mailu runtime state (never commit) ----
+mailu/data/
+mailu/mail/
+mailu/filter/
+mailu/redis/
+mailu/webmail/
+mailu/clamav/
+mailu/mailqueue/
+mailu/dav/
+mailu/.bak-*/
+
+# Keep the bind-mount targets tracked (empty) so `docker compose up` does not
+# create them as root-owned directories, but ignore the keys/certs inside.
+mailu/certs/*
+!mailu/certs/.gitkeep
+mailu/dkim/*
+!mailu/dkim/.gitkeep

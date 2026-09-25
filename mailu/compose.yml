@@ -1,0 +1,372 @@
+# ---------------------------------------------
+# À lancer avec le fichier d'environnement :
+#
+#   docker compose --env-file mailu.env up -d
+#
+# mailu.env sert deux fois : --env-file remplace les ${...} de ce fichier,
+# et env_file (ci-dessous) injecte ses variables dans les conteneurs.
+# ---------------------------------------------
+
+# ---------------------------------------------
+# Fragments partagés, fusionnés dans les services avec `<<:`
+# (docker compose ignore lui-même les clés x-).
+# ---------------------------------------------
+
+x-restart: &restart
+  restart: always
+
+# Configuration d'exécution. Chaque service Mailu en a besoin :
+# --env-file ne transmet rien à l'intérieur des conteneurs, il faut donc
+# redonner le chemin ici. MAILU_ENV_FILE est défini dans le fichier passé
+# à --env-file lui-même : un seul endroit à changer par environnement.
+x-env: &env
+  env_file:
+    - ${MAILU_ENV_FILE:?à définir dans le fichier passé à --env-file}
+
+# Résolveur DNS interne (unbound), à IP fixe sur le réseau default.
+x-dns: &dns
+  dns:
+    - 192.168.203.254
+
+
+services:
+
+  # ---------------------------------------------
+  # Redis
+  # ---------------------------------------------
+
+  redis:
+    <<: [*restart, *dns]
+    image: redis:alpine
+
+    volumes:
+      - ./redis:/data
+
+    depends_on:
+      - resolver
+
+    networks:
+      - default
+
+
+  # ---------------------------------------------
+  # Résolveur DNS
+  # ---------------------------------------------
+
+  resolver:
+    <<: [*restart, *env]
+    image: ghcr.io/mailu/unbound:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    networks:
+      default:
+        ipv4_address: 192.168.203.254
+
+
+  # ---------------------------------------------
+  # Frontal Mailu
+  # HTTP / HTTPS / SMTP / IMAP / POP3
+  # ---------------------------------------------
+
+  front:
+    <<: [*restart, *env, *dns]
+    image: ghcr.io/mailu/nginx:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    # Lus par nginx-proxy / acme-companion. Préfixés FRONT_ dans mailu.env :
+    # sous leur vrai nom, env_file les donnerait aux 9 conteneurs et
+    # nginx-proxy routerait le domaine vers chacun d'eux.
+    environment:
+      VIRTUAL_HOST: ${FRONT_VIRTUAL_HOST:-}
+      VIRTUAL_PORT: ${FRONT_VIRTUAL_PORT:-80}
+      LETSENCRYPT_HOST: ${FRONT_LETSENCRYPT_HOST:-}
+
+    ports:
+      # Sur le serveur, 80 / 443 appartiennent à nginx-proxy : lier ailleurs
+      # via FRONT_HTTP_PORT / FRONT_HTTPS_PORT (ex. 127.0.0.1:8080).
+      - "${FRONT_HTTP_PORT:-80}:80"
+      - "${FRONT_HTTPS_PORT:-443}:443"
+
+      - "25:25"
+      - "465:465"
+      - "587:587"
+
+      - "110:110"
+      - "995:995"
+
+      - "143:143"
+      - "993:993"
+
+      - "4190:4190"
+
+    volumes:
+      # Sur le serveur : répertoire des certificats d'acme-companion.
+      - ${FRONT_CERTS_DIR:-./certs}:/certs
+      - ./overrides/nginx:/overrides:ro
+
+    networks:
+      - default
+      - webmail
+      - radicale
+      - proxy
+
+    depends_on:
+      - resolver
+
+
+  # ---------------------------------------------
+  # PostgreSQL
+  # Héberge les bases de Mailu (admin) et de Roundcube (webmail).
+  # Rôles et bases créés par postgres/initdb au premier démarrage.
+  # ---------------------------------------------
+
+  database:
+    <<: [*restart, *env]
+    image: postgres:16-alpine
+
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/initdb:/docker-entrypoint-initdb.d:ro
+
+    networks:
+      - database
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  # ---------------------------------------------
+  # Admin
+  # ---------------------------------------------
+
+  admin:
+    <<: [*restart, *env, *dns]
+    image: ghcr.io/mailu/admin:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    volumes:
+      - ./data:/data
+      - ./dkim:/dkim
+
+    networks:
+      - default
+      - database
+
+    depends_on:
+      redis:
+        condition: service_started
+      resolver:
+        condition: service_started
+      database:
+        condition: service_healthy
+
+
+  # ---------------------------------------------
+  # IMAP / Dovecot
+  # ---------------------------------------------
+
+  imap:
+    <<: [*restart, *env, *dns]
+    image: ghcr.io/mailu/dovecot:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    volumes:
+      - ./mail:/mail
+      - ./overrides/dovecot:/overrides:ro
+
+    networks:
+      - default
+
+    depends_on:
+      - front
+      - resolver
+
+
+  # ---------------------------------------------
+  # SMTP / Postfix
+  # ---------------------------------------------
+
+  smtp:
+    <<: [*restart, *env, *dns]
+    image: ghcr.io/mailu/postfix:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    volumes:
+      - mailqueue:/queue
+      - ./overrides/postfix:/overrides:ro
+
+    networks:
+      - default
+
+    depends_on:
+      - front
+      - resolver
+
+
+  # ---------------------------------------------
+  # Oletools
+  # ---------------------------------------------
+
+  oletools:
+    <<: [*restart, *dns]
+    image: ghcr.io/mailu/oletools:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+    hostname: oletools
+
+    networks:
+      - oletools
+
+    depends_on:
+      - resolver
+
+
+  # ---------------------------------------------
+  # Rspamd
+  # ---------------------------------------------
+
+  antispam:
+    <<: [*restart, *env, *dns]
+    image: ghcr.io/mailu/rspamd:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+    hostname: antispam
+
+    volumes:
+      - ./filter:/var/lib/rspamd
+      - ./overrides/rspamd:/overrides:ro
+
+    networks:
+      - default
+      - oletools
+      - clamav
+
+    depends_on:
+      - front
+      - redis
+      - oletools
+      - antivirus
+      - resolver
+
+
+  # ---------------------------------------------
+  # ClamAV
+  # ---------------------------------------------
+
+  antivirus:
+    <<: *restart
+    image: clamav/clamav-debian:1.4
+
+    volumes:
+      - ./clamav:/var/lib/clamav
+
+    networks:
+      - clamav
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "kill -0 `cat /tmp/clamd.pid` && kill -0 `cat /tmp/freshclam.pid`"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+
+  # ---------------------------------------------
+  # WebDAV / CardDAV / CalDAV
+  # ---------------------------------------------
+
+  webdav:
+    <<: *restart
+    image: ghcr.io/mailu/radicale:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    volumes:
+      - ./dav:/data
+
+    networks:
+      - radicale
+
+
+  # ---------------------------------------------
+  # Fetchmail
+  # ---------------------------------------------
+
+  fetchmail:
+    <<: [*restart, *env, *dns]
+    image: ghcr.io/mailu/fetchmail:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    volumes:
+      - ./data/fetchmail:/data
+
+    networks:
+      - default
+
+    depends_on:
+      - admin
+      - smtp
+      - imap
+      - resolver
+
+
+  # ---------------------------------------------
+  # Roundcube
+  # L'image s'appelle « webmail » depuis Mailu 2024.06
+  # (ghcr.io/mailu/roundcube n'existe que jusqu'à la 1.9).
+  # ---------------------------------------------
+
+  webmail:
+    <<: [*restart, *env]
+    image: ghcr.io/mailu/webmail:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+
+    volumes:
+      - ./webmail:/data
+      - ./overrides/roundcube:/overrides:ro
+
+    networks:
+      - webmail
+      - database
+
+    depends_on:
+      front:
+        condition: service_started
+      database:
+        condition: service_healthy
+
+
+# ---------------------------------------------
+# Réseaux
+# ---------------------------------------------
+
+networks:
+
+  default:
+    driver: bridge
+
+    ipam:
+      config:
+        - subnet: 192.168.203.0/24
+
+  webmail:
+    driver: bridge
+
+  oletools:
+    driver: bridge
+
+  clamav:
+    driver: bridge
+
+  radicale:
+    driver: bridge
+
+  database:
+    driver: bridge
+
+  # Réseau de nginx-proxy, créé en dehors de cette stack. En local :
+  #   docker network create nginx-proxy
+  proxy:
+    name: ${PROXY_NETWORK:-nginx-proxy}
+    external: true
+
+volumes:
+  # Volume nommé : postfix doit attribuer sa file d'attente à
+  # postfix:postdrop (chown), ce qu'un bind mount macOS refuse.
+  mailqueue:
+  # Volume nommé : postgres refuse un répertoire de données qu'il ne peut pas chown.
+  pgdata:
