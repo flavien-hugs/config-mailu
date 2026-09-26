@@ -58,6 +58,8 @@ x-mailu-env: &mailu-env
   WEB_WEBMAIL:
   WEB_API:
   SITENAME:
+  LOGO_URL:
+  LOGO_BACKGROUND:
   WEBSITE:
   CREDENTIAL_ROUNDS:
   REAL_IP_HEADER:
@@ -428,6 +430,14 @@ services:
     volumes:
       - ./webmail:/data
       - ./overrides/roundcube:/overrides:ro
+      # Thème SBBS, posé par-dessus Elastic fichier par fichier : Roundcube
+      # applique le bloc "config" de meta.json (nom du produit, logos), sans
+      # fichier PHP que snuffleupagus refuserait d'exécuter.
+      # Sources et compilation : overrides/roundcube/skins/sbbs, scripts/build-skin.sh.
+      - ./overrides/roundcube/skins/sbbs/meta.json:/var/www/roundcube/skins/elastic/meta.json:ro
+      - ./overrides/roundcube/skins/sbbs/styles/styles.min.css:/var/www/roundcube/skins/elastic/styles/styles.min.css:ro
+      - ./overrides/roundcube/skins/sbbs/images:/var/www/roundcube/skins/elastic/images/sbbs:ro
+      - ./overrides/roundcube/skins/sbbs/watermark.html:/var/www/roundcube/skins/elastic/watermark.html:ro
 
     networks:
       - webmail

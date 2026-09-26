@@ -11,8 +11,10 @@ mailu/
   mailu.env          valeurs de configuration (--env-file) — SECRETS, ignoré par git
   mailu.env.example  modèle sans secrets, versionné
   overrides/         surcharges de config par service, montées en lecture seule
+                     (overrides/roundcube/skins/sbbs : thème du webmail)
   postgres/initdb/   crée les rôles et bases mailu + roundcube au premier démarrage
   scripts/backup.sh  sauvegarde bases + mails + DKIM + config (voir « Sauvegardes »)
+  scripts/build-skin.sh  compile le thème du webmail (voir « Apparence »)
   certs/ dkim/       générés à l'exécution (contenu ignoré par git)
   data/ mail/ filter/ redis/ webmail/ clamav/ dav/   état, ignoré par git
 ```
@@ -249,6 +251,45 @@ pas ; vide, le chiffrement est opportuniste (plus compatible).
 une mise à jour est un changement volontaire (et commité). Suivre les
 versions de Mailu : <https://github.com/Mailu/Mailu/releases>. Changer de
 version majeure de PostgreSQL (16 → 17) demande un dump / restore.
+
+## Apparence
+
+Le webmail est Roundcube (`WEBMAIL=roundcube`) avec le thème SBBS : Elastic
+recompilé avec une palette violette, un logo et un filigrane SBBS.
+
+```
+overrides/roundcube/skins/sbbs/
+  styles/_variables.less   couleurs (@color-main, menu latéral, mode sombre)
+  styles/_styles.less      retouches (arrondis, graisse des boutons)
+  styles/styles.less       point d'entrée : Elastic + les deux fichiers ci-dessus
+  styles/styles.min.css    CSS compilé, commité (le serveur n'a pas besoin de Node)
+  meta.json                nom du produit et logos (bloc "config")
+  images/                  logos SVG
+  watermark.html           filigrane du volet de lecture vide
+```
+
+Ces fichiers sont montés par-dessus ceux d'Elastic dans `compose.yml`. Pas de
+fichier `.inc.php` : le durcissement PHP de l'image (snuffleupagus) refuse
+d'exécuter un fichier de config monté depuis l'hôte, et le webmail répond
+alors 500. Le bloc `config` de `meta.json` est appliqué par Roundcube à toute
+l'application, ce qui suffit pour le nom et les logos.
+
+Après une modification d'un `.less` :
+
+```sh
+cd mailu && ./scripts/build-skin.sh   # Node / npx requis ; la stack peut être arrêtée
+```
+
+Le script compile contre les sources d'Elastic de l'image webmail de
+`MAILU_VERSION` (téléchargée si besoin) : le relancer aussi après chaque mise
+à jour de `MAILU_VERSION`. Les autres
+fichiers (logos, `meta.json`, `watermark.html`) sont pris en compte au
+rechargement de la page ; si un éditeur remplace le fichier au lieu de le
+réécrire, redémarrer `webmail`.
+
+La page de connexion est celle de Mailu (SSO), pas celle de Roundcube : elle
+se règle avec `SITENAME`, `LOGO_URL` (URL publique d'une image) et
+`LOGO_BACKGROUND` dans `mailu.env`.
 
 ## Sauvegardes
 

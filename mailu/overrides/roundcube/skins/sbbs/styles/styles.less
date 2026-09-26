@@ -1,0 +1,15 @@
+/**
+ * Thème SBBS : Elastic (Roundcube) recompilé avec nos variables et nos
+ * règles. Le styles.min.css produit remplace celui d'Elastic (compose.yml).
+ * Ne pas l'éditer à la main : relancer scripts/build-skin.sh.
+ *
+ * Elastic est sous licence Creative Commons Attribution-ShareAlike,
+ * (c) The Roundcube Dev Team ; ce thème dérivé garde la même licence.
+ */
+
+@import "../../elastic/styles/styles.less";
+
+// En LESS, la dernière définition d'une variable l'emporte partout :
+// nos valeurs remplacent celles d'Elastic.
+@import "_variables.less";
+@import "_styles.less";
