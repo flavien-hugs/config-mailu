@@ -23,6 +23,7 @@ mailu/clamav/
 mailu/mailqueue/
 mailu/dav/
 mailu/.bak-*/
+mailu/backups/
 
 # Keep the bind-mount targets tracked (empty) so `docker compose up` does not
 # create them as root-owned directories, but ignore the keys/certs inside.

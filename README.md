@@ -12,6 +12,7 @@ mailu/
   mailu.env.example  modèle sans secrets, versionné
   overrides/         surcharges de config par service, montées en lecture seule
   postgres/initdb/   crée les rôles et bases mailu + roundcube au premier démarrage
+  scripts/backup.sh  sauvegarde bases + mails + DKIM + config (voir « Sauvegardes »)
   certs/ dkim/       générés à l'exécution (contenu ignoré par git)
   data/ mail/ filter/ redis/ webmail/ clamav/ dav/   état, ignoré par git
 ```
@@ -106,8 +107,11 @@ cd mailu && docker compose --env-file mailu.env logs -f front admin antispam
 
 ## Ports de l'hôte
 
-Chaque port est publié à l'identique sur toutes les interfaces : la stack est
-donc joignable depuis le réseau local, pas seulement depuis cette machine.
+En local, chaque port est publié à l'identique sur toutes les interfaces : la
+stack est donc joignable depuis le réseau local, pas seulement depuis cette
+machine. Chaque port mail est une variable de `mailu.env` (`SMTP_PORT`,
+`IMAP_PORT`…) au format `[ip:]port`, pour pouvoir en fermer sur le serveur
+(voir « Sécurité »).
 
 | Service     | Port | Service     | Port |
 |-------------|------|-------------|------|
@@ -190,5 +194,89 @@ Dans `mailu.env` du serveur :
 - `SESSION_COOKIE_SECURE=True`, `WEBSITE=https://...`, le vrai `DOMAIN` /
   `HOSTNAMES`, et de nouveaux `SECRET_KEY`, `INITIAL_ADMIN_PW` et mots de
   passe de base.
+- Les réglages de la section « Sécurité » ci-dessous.
 
-Puis publier les enregistrements DNS : A / AAAA, MX, SPF, DKIM, DMARC et PTR.
+Puis publier les enregistrements DNS : A / AAAA, MX, SPF (`-all`), DKIM,
+DMARC (`p=quarantine`, puis `p=reject`) et PTR.
+
+## Sécurité
+
+### Ports exposés
+
+Docker publie ses ports en contournant `ufw` : un port publié est ouvert même
+si le pare-feu le refuse. C'est donc dans `mailu.env` qu'on ferme. Sur le
+serveur, ne garder publics que 25, 465, 587, 993 (et 995 si POP3) :
+
+```
+POP3_PORT=127.0.0.1:110          # POP3 en clair
+IMAP_PORT=127.0.0.1:143          # IMAP en clair
+SIEVE_PORT=127.0.0.1:4190        # ManageSieve, sauf si les clients s'en servent
+PORTS=25,80,443,465,587,993,995  # ports écoutés par front
+FRONT_HTTP_PORT=127.0.0.1:8080   # web joignable seulement via nginx-proxy
+FRONT_HTTPS_PORT=127.0.0.1:8443
+```
+
+Vérifier depuis une autre machine : `nmap -p 25,110,143,465,587,993,995,4190,8080 <ip>`.
+
+### Authentification
+
+- `REAL_IP_HEADER=X-Forwarded-For` et `REAL_IP_FROM` (voir « Passage en
+  production ») : sans eux, la limitation par IP voit tout le monde avec
+  l'IP de nginx-proxy.
+- `AUTH_RATELIMIT_IP` / `AUTH_RATELIMIT_USER` : échecs tolérés avant blocage.
+- `AUTH_REQUIRE_TOKENS=true` : les clients IMAP / SMTP utilisent un jeton
+  créé dans l'admin (révocable) au lieu du mot de passe du compte.
+- Activer la double authentification (2FA) sur le compte admin si la version
+  de Mailu la propose.
+- `API=false` tant que l'API n'est pas utilisée.
+- `/admin` est public derrière nginx-proxy : le restreindre (IP ou
+  authentification HTTP) dans la configuration de nginx-proxy, ou au moins
+  changer `WEB_ADMIN`.
+
+### TLS sortant
+
+`OUTBOUND_TLS_LEVEL=encrypt` refuse d'envoyer vers un serveur qui ne chiffre
+pas ; vide, le chiffrement est opportuniste (plus compatible).
+
+### Secrets
+
+- `chmod 600 mailu.env` sur le serveur.
+- Ne jamais réutiliser les secrets locaux ; tous les régénérer.
+
+### Images
+
+`MAILU_VERSION`, `redis` et `postgres` sont épinglés à une version exacte :
+une mise à jour est un changement volontaire (et commité). Suivre les
+versions de Mailu : <https://github.com/Mailu/Mailu/releases>. Changer de
+version majeure de PostgreSQL (16 → 17) demande un dump / restore.
+
+## Sauvegardes
+
+```sh
+cd mailu && ./scripts/backup.sh
+```
+
+Crée `backups/mailu-<date>.tar` avec les dumps des bases `mailu` et
+`roundcube`, et `mail/`, `dkim/`, `dav/` et `mailu.env`. Les archives de plus
+de 14 jours sont supprimées (`RETENTION_DAYS`). Avec `AGE_RECIPIENT=<clé
+publique age>`, l'archive est chiffrée (`.tar.age`) : indispensable dès
+qu'elle quitte le serveur, puisqu'elle contient les secrets et les mails.
+
+Exemple de cron quotidien sur le serveur :
+
+```
+30 3 * * * cd /chemin/vers/mailu && AGE_RECIPIENT=age1... ./scripts/backup.sh >> backups/backup.log 2>&1
+```
+
+Restauration (stack arrêtée sauf `database`) :
+
+```sh
+tar xf mailu-<date>.tar                          # après `age -d` si chiffrée
+tar xzf files.tar.gz -C mailu/                   # mail/ dkim/ dav/ mailu.env
+docker compose --env-file mailu.env exec -T database \
+  pg_restore -U postgres -d mailu --clean --if-exists < db/mailu.dump
+docker compose --env-file mailu.env exec -T database \
+  pg_restore -U postgres -d roundcube --clean --if-exists < db/roundcube.dump
+```
+
+Tester une restauration au moins une fois, sur une autre machine.

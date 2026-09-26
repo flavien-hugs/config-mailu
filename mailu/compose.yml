@@ -110,7 +110,8 @@ services:
 
   redis:
     <<: [*restart, *dns]
-    image: redis:alpine
+    # Version exacte : une mise à jour doit être un choix, pas un pull.
+    image: redis:8.10.2-alpine
 
     volumes:
       - ./redis:/data
@@ -162,17 +163,20 @@ services:
       - "${FRONT_HTTP_PORT:-80}:80"
       - "${FRONT_HTTPS_PORT:-443}:443"
 
-      - "25:25"
-      - "465:465"
-      - "587:587"
+      # Ports mail : chaque variable vaut « [ip:]port hôte ». Sur le serveur,
+      # préfixer par 127.0.0.1: les ports à ne pas exposer (110, 143, 4190) ;
+      # docker publie en contournant ufw, c'est donc ici qu'on ferme.
+      - "${SMTP_PORT:-25}:25"
+      - "${SUBMISSIONS_PORT:-465}:465"
+      - "${SUBMISSION_PORT:-587}:587"
 
-      - "110:110"
-      - "995:995"
+      - "${POP3_PORT:-110}:110"
+      - "${POP3S_PORT:-995}:995"
 
-      - "143:143"
-      - "993:993"
+      - "${IMAP_PORT:-143}:143"
+      - "${IMAPS_PORT:-993}:993"
 
-      - "4190:4190"
+      - "${SIEVE_PORT:-4190}:4190"
 
     volumes:
       # Sur le serveur : répertoire des certificats d'acme-companion.
@@ -197,7 +201,8 @@ services:
 
   database:
     <<: *restart
-    image: postgres:16-alpine
+    # Version exacte ; changer de majeure (16 -> 17) demande un dump/restore.
+    image: postgres:16.14-alpine
 
     # Pas de config Mailu : seulement le superutilisateur et les accès
     # lus par postgres/initdb/01-mailu.sh.
