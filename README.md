@@ -10,6 +10,7 @@ mailu/
   compose.yml        définition de la stack (13 services)
   mailu.env          valeurs de configuration (--env-file) — SECRETS, ignoré par git
   mailu.env.example  modèle sans secrets, versionné
+  mailu.env.server.example  modèle serveur (sbbs-technology.com), voir docs/deploy-mailu.md
   overrides/         surcharges de config par service, montées en lecture seule
                      (overrides/roundcube/skins/sbbs : thème du webmail)
   postgres/initdb/   crée les rôles et bases mailu + roundcube au premier démarrage
@@ -164,6 +165,8 @@ les mails en attente :
   entrées `depends_on` dans `antispam`, et les réseaux `clamav` / `oletools`.
 
 ## Passage en production
+
+Procédure pas à pas pour `sbbs-technology.com` : [docs/deploy-mailu.md](docs/deploy-mailu.md).
 
 Sur le serveur, Mailu tourne derrière nginx-proxy + acme-companion, déjà en
 place. Tout se règle dans le `mailu.env` du serveur ; `compose.yml` ne change
