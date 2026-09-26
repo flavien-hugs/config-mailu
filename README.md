@@ -252,6 +252,44 @@ une mise à jour est un changement volontaire (et commité). Suivre les
 versions de Mailu : <https://github.com/Mailu/Mailu/releases>. Changer de
 version majeure de PostgreSQL (16 → 17) demande un dump / restore.
 
+### Chiffrement
+
+**Données stockées** — seuls les mots de passe sont protégés par Mailu :
+
+| Donnée | Chiffrée ? | Détail |
+|---|---|---|
+| Mots de passe des comptes | ✅ hachés | bcrypt (`$bcrypt-sha2`) : vérifiables, pas récupérables |
+| Mails (`mail/`) | ❌ | lisibles tels quels ; `COMPRESSION=gzip` compresse, ne chiffre pas |
+| PostgreSQL (`pgdata`) | ❌ | comptes, alias, carnet d'adresses, préférences Roundcube |
+| Clés DKIM, `mailu.env` | ❌ | protégés par les seules permissions (`chmod 600`) |
+| Sauvegardes | ⚠️ | chiffrées seulement avec `AGE_RECIPIENT` |
+
+**Données en transit** :
+
+| Trajet | Local | Serveur |
+|---|---|---|
+| Client mail ↔ Mailu (IMAP / SMTP) | ❌ `TLS_FLAVOR=notls` | ✅ TLS (465 / 587 / 993 / 995) avec `TLS_FLAVOR=mail` |
+| Navigateur ↔ webmail / admin | ❌ HTTP | ✅ HTTPS terminé par nginx-proxy |
+| Mailu ↔ autres serveurs mail | — (port 25 bloqué) | ✅ opportuniste, ou obligatoire avec `OUTBOUND_TLS_LEVEL=encrypt` |
+| Entre conteneurs (proxy → front, admin → PostgreSQL) | ❌ | ❌, sur des réseaux Docker internes non exposés |
+
+**Configuration conseillée sur le serveur** :
+
+1. **Disque chiffré (LUKS)**, ou volume chiffré proposé par l'hébergeur :
+   protège mails, base, clés et sauvegardes locales en cas de vol du disque
+   ou d'une copie du serveur. Transparent pour Mailu.
+2. **Sauvegardes toujours chiffrées** (`AGE_RECIPIENT`), clé privée conservée
+   hors du serveur.
+3. **PGP de bout en bout** pour les échanges sensibles : le plugin `enigma`
+   de Roundcube est activé (Paramètres → Chiffrement). Seul moyen pour que le
+   serveur lui-même ne puisse pas lire un mail ; le correspondant doit aussi
+   utiliser PGP.
+
+Le chiffrement des boîtes par Dovecot (`mail_crypt`) n'est pas pris en charge
+par Mailu et garderait ses clés sur le même serveur : le chiffrement du disque
+couvre le même risque plus simplement. Dans tous les cas, l'administrateur du
+serveur peut lire les mails, sauf ceux chiffrés en PGP.
+
 ## Apparence
 
 Le webmail est Roundcube (`WEBMAIL=roundcube`) avec le thème SBBS : Elastic
