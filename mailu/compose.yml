@@ -358,16 +358,17 @@ services:
     networks:
       - clamav
 
+    # Script fourni par l'image : envoie PING à clamd sur le port 3310 (celui
+    # qu'utilise rspamd) et attend PONG. L'image n'écrit pas de fichier pid,
+    # d'où l'ancien test toujours en échec.
+    # start_period long : au premier démarrage, freshclam télécharge
+    # plusieurs centaines de Mo de signatures avant que clamd n'écoute.
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "kill -0 `cat /tmp/clamd.pid` && kill -0 `cat /tmp/freshclam.pid`"
-        ]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 10m
 
 
   # ---------------------------------------------
