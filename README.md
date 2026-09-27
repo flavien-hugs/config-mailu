@@ -404,6 +404,11 @@ La page de connexion est celle de Mailu (SSO), pas celle de Roundcube : elle
 se règle avec `SITENAME`, `LOGO_URL` (URL publique d'une image) et
 `LOGO_BACKGROUND` dans `mailu.env`.
 
+Le pied de page de l'admin et de la page de connexion (« Built with ♥ using
+Flask and AdminLTE », lien GitHub, version de Mailu) est masqué par
+`overrides/nginx/hide-footer.conf` : nginx (`front`) injecte une règle CSS
+dans les pages HTML qu'il relaie, sans toucher aux templates de Mailu.
+
 ## Sauvegardes
 
 ```sh
