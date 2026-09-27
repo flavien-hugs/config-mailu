@@ -184,6 +184,10 @@ services:
       # Sur le serveur : répertoire des certificats d'acme-companion.
       - ${FRONT_CERTS_DIR:-./certs}:/certs
       - ./overrides/nginx:/overrides:ro
+      # Favicons SBBS (+ robots.txt de Mailu) à la place de /static, servi à la
+      # racine par front. Tout le dossier : front sert en priorité les .gz
+      # précompressés de Mailu, qu'un seul favicon.ico ne remplacerait pas.
+      - ./overrides/favicon:/static:ro
 
     networks:
       - default
@@ -457,6 +461,7 @@ services:
       - ./overrides/roundcube/skins/sbbs/styles/styles.min.css:/var/www/roundcube/skins/elastic/styles/styles.min.css:ro
       - ./overrides/roundcube/skins/sbbs/images:/var/www/roundcube/skins/elastic/images/sbbs:ro
       - ./overrides/roundcube/skins/sbbs/watermark.html:/var/www/roundcube/skins/elastic/watermark.html:ro
+      - ./overrides/favicon/favicon.ico:/var/www/roundcube/skins/elastic/images/favicon.ico:ro
       - ./overrides/roundcube/skins/sbbs/templates/includes/menu.html:/var/www/roundcube/skins/elastic/templates/includes/menu.html:ro
 
     networks:

@@ -424,6 +424,17 @@ fichiers (logos, `meta.json`, `watermark.html`) sont pris en compte au
 rechargement de la page ; si un éditeur remplace le fichier au lieu de le
 réécrire, redémarrer `webmail`.
 
+### Favicon
+
+Icône SBBS (enveloppe blanche sur carré violet) dans l'onglet du navigateur,
+en favori et sur l'écran d'accueil mobile, pour la connexion, l'admin et le
+webmail. Fichiers dans `overrides/favicon/` : sources `favicon.svg` (onglet) et
+`icon-full.svg` (Apple / Android, fond plein), rendus PNG / ICO, manifeste
+web, et le `robots.txt` de Mailu (même dossier). Le dossier remplace
+`/static` de `front`, qui le sert à la racine ; `favicon.ico` recouvre aussi
+celui de Roundcube. Pour changer d'icône : remplacer les SVG, régénérer les
+PNG (16, 32, 180, 192, 512 px) et le `.ico` (16, 32, 48 px), puis recharger.
+
 ### Page de connexion et administration Mailu
 
 La page de connexion (SSO, commune au webmail et à l'admin) est remplacée par
