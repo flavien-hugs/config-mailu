@@ -244,6 +244,8 @@ services:
     volumes:
       - ./data:/data
       - ./dkim:/dkim
+      # Page de connexion SBBS (remplace celle de Mailu, même logique).
+      - ./overrides/admin/login.html:/app/mailu/sso/templates/login.html:ro
 
     networks:
       - default
