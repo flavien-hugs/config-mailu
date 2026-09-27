@@ -405,11 +405,18 @@ réécrire, redémarrer `webmail`.
 La page de connexion (SSO, commune au webmail et à l'admin) est remplacée par
 `overrides/admin/login.html`, monté sur le template `sso/templates/login.html`
 du service `admin` : carte centrée sur fond dégradé, logo et nom en haut à
-gauche, choix de la langue, affichage du mot de passe, mode sombre. Mêmes
+gauche, bouton clair / sombre en haut à droite, affichage du mot de passe.
+Mêmes
 champs que l'original : la logique de Mailu (SSO, limitation des tentatives,
 redirections, vérification des mots de passe compromis) ne change pas.
 
-- « Se connecter » ouvre le webmail ; « Accéder à l'administration » l'admin.
+- Un seul bouton, « Se connecter », qui ouvre le webmail. L'admin n'est pas
+  proposée sur la page : ouvrir `/admin` directement, Mailu redirige vers la
+  connexion puis vers l'admin.
+- Thème : celui du système par défaut ; le bouton clair / sombre enregistre
+  le choix dans le cookie `colorMode`, le même que Roundcube : le webmail
+  reprend le choix (et inversement).
+- Pas de choix de langue : celle du navigateur s'applique.
 - « Un problème pour se connecter ? » écrit à `POSTMASTER@DOMAIN`.
 - Logo : `LOGO_URL` s'il est défini, sinon l'icône SBBS intégrée ; nom :
   `SITENAME`.
