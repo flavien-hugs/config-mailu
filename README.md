@@ -46,7 +46,7 @@ flowchart LR
     client -- "IMAPS 993 · SMTP 465 / 587" --> front
     mx -- "SMTP 25" --> front
 
-    front -- "/admin · /sso" --> admin
+    front -- "/admin · /auth/login · /sso" --> admin
     front -- "/webmail" --> webmail
     front -- "/webdav" --> webdav
     front -- "authentification" --> admin
@@ -437,7 +437,14 @@ PNG (16, 32, 180, 192, 512 px) et le `.ico` (16, 32, 48 px), puis recharger.
 
 ### Page de connexion et administration Mailu
 
-La page de connexion (SSO, commune au webmail et à l'admin) est remplacée par
+La page de connexion (SSO, commune au webmail et à l'admin) est à l'adresse
+**`/auth/login`** (`overrides/nginx/auth-login.conf`) : `front` la relaie vers
+`/sso/login` de Mailu, qui reste codé en dur dans l'application, et redirige
+`/sso/login` vers `/auth/login` (redirections automatiques de Mailu comprises,
+paramètres conservés). Le cookie « appareil de confiance » de Mailu est
+rattaché à `/auth/login`. Les autres adresses `/sso/*` ne changent pas.
+
+Elle est remplacée par
 `overrides/admin/login.html`, monté sur le template `sso/templates/login.html`
 du service `admin`. La page de changement de mot de passe imposé
 (`/sso/pw_change`) suit le même design, sans menu latéral :
