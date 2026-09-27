@@ -1,4 +1,17 @@
-// Retouches visuelles au-delà des couleurs.
+// Mise en page épurée (esprit Gmail / Proton) au-dessus d'Elastic :
+// menu clair avec « Rédiger » mis en avant, barres d'outils en icônes seules,
+// sélection en pastilles, recherche arrondie. CSS seulement : aucun template
+// Roundcube n'est modifié.
+
+.sr-only-label() {
+	// Masqué visuellement, gardé pour les lecteurs d'écran
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+}
 
 // Boutons et champs plus arrondis
 .btn,
@@ -14,3 +27,383 @@
 
 // Pas de règles pour la page de connexion Roundcube : Mailu la remplace par
 // sa propre page (SSO), réglée par LOGO_URL / LOGO_BACKGROUND dans mailu.env.
+
+// ---------------------------------------------------------------------------
+// Menu latéral
+// ---------------------------------------------------------------------------
+
+@menu-width-expanded:  208px;
+@menu-width-collapsed: 64px;
+
+// Bouton « réduire / déplier » (templates/includes/menu.html) : écrans larges
+// seulement ; tablette (menu en icônes) et téléphone (menu escamotable) gardent
+// le comportement d'Elastic.
+.sbbs-menu-toggle {
+	display: none;
+}
+
+@media screen and (min-width: (@screen-width-xs + 1px)) {
+	#layout-menu {
+		border-right: 1px solid @color-layout-border;
+	}
+
+	#taskmenu a.about {
+		display: none !important;
+	}
+}
+
+@media screen and (min-width: (@screen-width-medium + 1px)) {
+	#layout-menu {
+		position: relative;
+		width: @menu-width-expanded;
+		transition: width .15s ease;
+
+		.popover-header {
+			text-align: left;
+			padding-left: .9rem !important;
+		}
+	}
+
+	.sbbs-menu-toggle {
+		display: grid;
+		place-items: center;
+		position: absolute;
+		top: ((@layout-header-height - 40px) / 2);
+		right: .5rem;
+		width: 40px;
+		height: 40px;
+		border-radius: .6rem;
+		color: @color-taskmenu-button;
+		z-index: 1;
+
+		&:hover,
+		&:focus {
+			color: @color-taskmenu-button-hover;
+			background: @color-taskmenu-button-background-hover;
+			text-decoration: none;
+		}
+	}
+
+	// Entrées : petite icône, libellé à droite
+	#taskmenu {
+		padding: .25rem 0;
+
+		a {
+			display: flex !important;
+			align-items: center;
+			gap: .75rem;
+			width: auto !important;
+			max-width: none;
+			height: 2.5rem;
+			margin: .1rem .5rem;
+			padding: 0 .85rem !important;
+			border-radius: .75rem;
+			text-align: left;
+			font-size: .9rem;
+			white-space: nowrap;
+			overflow: hidden;
+
+			// Icône centrée verticalement sur le libellé : Elastic lui impose
+			// une hauteur de 1.75rem, glyphe en haut, d'où le décalage.
+			&:before {
+				flex: none;
+				display: flex !important;
+				align-items: center;
+				justify-content: center;
+				width: 1.25rem !important;
+				height: 1.25rem !important;
+				margin: 0 !important;
+				font-size: 1rem;
+				line-height: 1 !important;
+			}
+
+			span.inner {
+				padding: 0;
+				line-height: 1.25rem;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			&.selected {
+				font-weight: 600;
+			}
+		}
+
+		// « Rédiger » : bouton principal, comme « Nouveau message »
+		a.compose {
+			height: 2.9rem;
+			margin: .5rem .5rem .75rem;
+			font-weight: 600;
+			box-shadow: 0 6px 16px fade(@color-main, 30%);
+		}
+
+		.action-buttons {
+			display: block;
+		}
+
+		.special-buttons {
+			width: 100%;
+			padding-bottom: .5rem;
+		}
+
+		// Bouton clair / sombre : en haut à droite de l'écran
+		a.theme {
+			position: fixed;
+			top: ((@layout-header-height - 40px) / 2);
+			right: .75rem;
+			z-index: 10;
+			width: 40px !important;
+			height: 40px;
+			margin: 0;
+			padding: 0 !important;
+			justify-content: center;
+			border-radius: .6rem;
+			color: @color-toolbar-button;
+
+			span.inner {
+				.sr-only-label();
+			}
+		}
+	}
+
+	// Place pour le bouton clair / sombre dans l'en-tête de droite
+	#layout-content > .header {
+		padding-right: 56px;
+	}
+
+	// Menu réduit : icônes seules, libellés en infobulle
+	html.sbbs-menu-collapsed {
+		#layout-menu {
+			width: @menu-width-collapsed;
+
+			#logo {
+				display: none;
+			}
+		}
+
+		.sbbs-menu-toggle {
+			right: ((@menu-width-collapsed - 40px) / 2);
+		}
+
+		#taskmenu a:not(.theme) {
+			justify-content: center;
+			padding: 0 !important;
+			margin: .1rem .6rem;
+
+			span.inner {
+				.sr-only-label();
+			}
+		}
+
+		#taskmenu a.compose {
+			margin: .5rem .6rem .75rem;
+		}
+
+
+		// Survol du menu réduit : il se déplie par-dessus la colonne voisine
+		// (marge négative : la mise en page ne bouge pas), libellés visibles.
+		#layout-menu:hover {
+			width: @menu-width-expanded;
+			margin-right: -(@menu-width-expanded - @menu-width-collapsed);
+			z-index: 50;
+			box-shadow: 12px 0 32px rgba(20, 11, 48, .14);
+
+			#logo {
+				display: inline;
+			}
+
+			.sbbs-menu-toggle {
+				right: .5rem;
+			}
+
+			#taskmenu a:not(.theme) {
+				justify-content: flex-start;
+				padding: 0 .85rem !important;
+				margin: .1rem .5rem;
+
+				span.inner {
+					position: static;
+					width: auto;
+					height: auto;
+					clip: auto;
+					overflow: hidden;
+				}
+			}
+
+			#taskmenu a.compose {
+				margin: .5rem .5rem .75rem;
+			}
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Bouton du plugin Mailu, renommé « Mon compte » (templates/includes/menu.html) :
+// icône de compte comme les autres entrées, à la place du logo Mailu que le
+// plugin met en image de fond, et couleurs de survol du thème (le plugin
+// impose du gris).
+// ---------------------------------------------------------------------------
+
+#layout-menu #taskmenu a.button-mailu {
+	background-image: none !important;
+
+	&:before {
+		content: @fa-var-user-circle;
+	}
+
+	&:hover,
+	&.selected {
+		color: @color-taskmenu-button-hover;
+		background-color: @color-taskmenu-button-background-hover;
+	}
+}
+
+html.dark-mode #layout-menu #taskmenu a.button-mailu {
+	&:hover,
+	&.selected {
+		color: #fff;
+		background-color: @color-dark-list-selected-background;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Barres d'outils des colonnes : icônes seules (libellé en infobulle)
+// ---------------------------------------------------------------------------
+
+@toolbar-button-size: 40px;
+
+
+@media screen and (min-width: (@screen-width-medium + 1px)) {
+	#layout-list > .header .menu.toolbar a,
+	#layout-content > .header .menu.toolbar a,
+	#layout-list > .header a.toolbar-button.refresh {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: @toolbar-button-size;
+		height: @toolbar-button-size;
+		margin-top: ((@layout-header-height - @toolbar-button-size) / 2);
+		padding: 0 .55rem;
+		border-radius: .6rem;
+
+		&:before {
+			height: auto !important;
+			line-height: 1;
+			font-size: 1.1rem;
+		}
+
+		span.inner {
+			.sr-only-label();
+		}
+	}
+
+	#layout-list > .header a.toolbar-button.refresh {
+		width: auto;
+	}
+
+	#layout-list > .header .menu.toolbar .dropbutton a.dropdown,
+	#layout-content > .header .menu.toolbar .dropbutton a.dropdown {
+		min-width: 0;
+		padding: 0 .3rem;
+
+		&:before {
+			line-height: 1;
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Recherche : champ arrondi, sans bordure
+// ---------------------------------------------------------------------------
+
+.searchbar {
+	border: 0;
+	border-radius: 1.5rem;
+	margin: .5rem .75rem;
+}
+
+// ---------------------------------------------------------------------------
+// Dossiers : sélection en pastille, comme Gmail
+// ---------------------------------------------------------------------------
+
+#folderlist-content .listing li,
+#mailboxlist li {
+	border: 0;
+
+	&.selected {
+		background-color: transparent !important;
+
+		& > a {
+			background-color: @color-list-selected-background;
+			color: @color-main;
+			font-weight: 600;
+		}
+	}
+
+	a {
+		border-radius: 0 1.5rem 1.5rem 0;
+		margin-right: .75rem;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Liste des messages : plus aérée, séparateurs discrets
+// ---------------------------------------------------------------------------
+
+#messagelist {
+	tr td {
+		border-color: @color-list-border;
+	}
+
+	tr.unread td.subject span.subject a {
+		font-weight: 700;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Mode sombre
+// ---------------------------------------------------------------------------
+
+html.dark-mode {
+	#layout-menu {
+		background-color: #121118 !important;
+	}
+
+	.sbbs-menu-toggle,
+	#taskmenu a.theme {
+		color: @color-dark-font;
+
+		&:hover {
+			color: #fff;
+			background: @color-dark-list-selected-background;
+		}
+	}
+
+	#taskmenu {
+		a.selected {
+			background-color: @color-dark-list-selected-background;
+			color: @color-dark-list-selected;
+		}
+
+		a.compose,
+		a.compose:hover {
+			background-color: @color-dark-main !important;
+			color: #fff !important;
+			box-shadow: none;
+		}
+	}
+
+	.searchbar {
+		background-color: #1f1d29;
+	}
+
+	#folderlist-content .listing li.selected > a,
+	#mailboxlist li.selected > a {
+		background-color: @color-dark-list-selected-background;
+		color: @color-dark-list-selected;
+	}
+
+	#messagelist tr td {
+		border-color: @color-dark-list-border;
+	}
+}

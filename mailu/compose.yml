@@ -240,12 +240,23 @@ services:
       INITIAL_ADMIN_DOMAIN:
       INITIAL_ADMIN_PW: ${INITIAL_ADMIN_PW:?à définir dans mailu.env}
       INITIAL_ADMIN_MODE:
+      # Liens CGU / confidentialité de la page de connexion (overrides/admin).
+      LEGAL_TERMS_ADDRESS:
+      LEGAL_PRIVACY_ADDRESS:
 
     volumes:
       - ./data:/data
       - ./dkim:/dkim
-      # Page de connexion SBBS (remplace celle de Mailu, même logique).
+      # Pages SBBS de connexion et de changement de mot de passe (remplacent
+      # celles de Mailu, même logique) + leur mise en page commune.
+      - ./overrides/admin/sbbs_base.html:/app/mailu/sso/templates/sbbs_base.html:ro
+      - ./overrides/admin/sbbs_macros.html:/app/mailu/sso/templates/sbbs_macros.html:ro
       - ./overrides/admin/login.html:/app/mailu/sso/templates/login.html:ro
+      - ./overrides/admin/pw_change.html:/app/mailu/sso/templates/pw_change.html:ro
+      - ./overrides/admin/sbbs-login.css:/app/mailu/static/sbbs-login.css:ro
+      # Thème de l'admin, chargé par overrides/nginx/admin-ui.conf.
+      - ./overrides/admin/sbbs-admin.css:/app/mailu/static/sbbs-admin.css:ro
+      - ./overrides/admin/sbbs-admin.js:/app/mailu/static/sbbs-admin.js:ro
 
     networks:
       - default
@@ -440,6 +451,7 @@ services:
       - ./overrides/roundcube/skins/sbbs/styles/styles.min.css:/var/www/roundcube/skins/elastic/styles/styles.min.css:ro
       - ./overrides/roundcube/skins/sbbs/images:/var/www/roundcube/skins/elastic/images/sbbs:ro
       - ./overrides/roundcube/skins/sbbs/watermark.html:/var/www/roundcube/skins/elastic/watermark.html:ro
+      - ./overrides/roundcube/skins/sbbs/templates/includes/menu.html:/var/www/roundcube/skins/elastic/templates/includes/menu.html:ro
 
     networks:
       - webmail

@@ -1,0 +1,31 @@
+{#-
+  Changement de mot de passe SBBS : remplace sso/templates/pw_change.html de
+  Mailu (page imposée quand un compte doit changer son mot de passe).
+  Mêmes champs que l'original (oldpw, pw, pw2, pwned, submit) : la logique
+  de Mailu est inchangée. À revérifier à chaque mise à jour de MAILU_VERSION.
+  Mise en page : sbbs_base.html ; champs : sbbs_macros.html.
+-#}
+{%- extends "sbbs_base.html" %}
+{%- import "sbbs_macros.html" as ui with context %}
+
+{%- block title %}{{ ui.tr('Change password') }}{% endblock %}
+
+{%- block heading %}
+<h1 class="mb-2 text-[26px] font-bold leading-tight sm:text-[30px]">{{ ui.tr('Change password') }}</h1>
+<p class="mb-7 text-sm text-muted dark:text-muted-dark">
+  {%- if current_user.is_authenticated %}{{ current_user.email }} · {% endif -%}
+  Choisissez un nouveau mot de passe pour continuer.
+</p>
+{%- endblock %}
+
+{%- block card %}
+<form method="post" role="form" novalidate>
+  {{ form.hidden_tag() }}
+  {{ ui.password_field(form.oldpw, 'lock', autocomplete="current-password") }}
+  {{ ui.password_field(form.pw, 'key', autocomplete="new-password") }}
+  {{ ui.password_field(form.pw2, 'key', autocomplete="new-password") }}
+  {{ ui.submit(form.submit.name, ui.tr('Change password')) }}
+</form>
+{%- endblock %}
+
+{%- block help_label %}Un problème pour changer de mot de passe ?{% endblock %}

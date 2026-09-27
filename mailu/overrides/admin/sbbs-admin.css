@@ -1,0 +1,261 @@
+/*
+ * Thème SBBS de l'administration Mailu (AdminLTE 3) : épuré, cohérent avec
+ * la page de connexion et le webmail.
+ *
+ * Servi par admin (/static/sbbs-admin.css) et chargé dans chaque page par
+ * overrides/nginx/admin-ui.conf. Aucun template Mailu n'est modifié.
+ * Tout est préfixé par body.sidebar-mini (pages AdminLTE) pour ne pas
+ * toucher la page de connexion, qui a ses propres styles.
+ * Clair / sombre : html[data-theme], posé par sbbs-admin.js (cookie
+ * colorMode partagé avec la connexion et le webmail, sinon système).
+ */
+
+:root {
+  --sb-bg: #f7f6fb;
+  --sb-card: #fff;
+  --sb-side: #f6f4fc;
+  --sb-line: #ebe8f3;
+  --sb-ink: #1f1d2b;
+  --sb-ink-2: #4b4860;
+  --sb-muted: #6b6880;
+  --sb-accent: #673de6;
+  --sb-accent-hover: #5530c9;
+  --sb-accent-soft: #ece6fd;
+  --sb-hover: #f1eefb;
+  --sb-ring: rgba(103, 61, 230, .18);
+}
+
+html[data-theme="dark"] {
+  --sb-bg: #16151d;
+  --sb-card: #1b1a26;
+  --sb-side: #121118;
+  --sb-line: #2d2b3a;
+  --sb-ink: #e3e1ec;
+  --sb-ink-2: #c9c6d6;
+  --sb-muted: #9d9aad;
+  --sb-accent: #8c6cf0;
+  --sb-accent-hover: #7c5cf0;
+  --sb-accent-soft: #2a2440;
+  --sb-hover: #211f2c;
+  --sb-ring: rgba(140, 108, 240, .25);
+  color-scheme: dark;
+}
+
+body.sidebar-mini {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--sb-ink);
+  background: var(--sb-bg);
+}
+
+body.sidebar-mini a { color: var(--sb-accent); }
+body.sidebar-mini .content-wrapper { background: var(--sb-bg); color: var(--sb-ink); }
+
+/* --- Barre du haut ------------------------------------------------------ */
+
+body.sidebar-mini .main-header.navbar {
+  background: var(--sb-card) !important;
+  border-bottom: 1px solid var(--sb-line) !important;
+  min-height: 57px;
+}
+body.sidebar-mini .main-header .nav-link { color: var(--sb-muted) !important; }
+body.sidebar-mini .main-header .nav-link:hover { color: var(--sb-ink) !important; }
+body.sidebar-mini .main-header .navbar-badge { background: var(--sb-accent); }
+body.sidebar-mini .sbbs-theme-toggle {
+  display: grid !important; place-items: center; width: 40px; height: 40px;
+  padding: 0 !important; margin-top: -2px; border-radius: .6rem;
+}
+body.sidebar-mini .sbbs-theme-toggle:hover { background: var(--sb-hover); }
+body.sidebar-mini .sbbs-theme-toggle .sun { display: none; }
+html[data-theme="dark"] body.sidebar-mini .sbbs-theme-toggle .sun { display: block; }
+html[data-theme="dark"] body.sidebar-mini .sbbs-theme-toggle .moon { display: none; }
+
+/* --- Menu latéral --------------------------------------------------------- */
+
+body.sidebar-mini .main-sidebar {
+  background: var(--sb-side) !important;
+  box-shadow: none !important;
+  border-right: 1px solid var(--sb-line);
+}
+body.sidebar-mini .brand-link {
+  background: transparent !important;
+  border-bottom: 1px solid var(--sb-line) !important;
+  color: var(--sb-ink) !important;
+  height: 57px;
+}
+body.sidebar-mini .brand-link .brand-text { font-weight: 700 !important; color: var(--sb-ink); }
+body.sidebar-mini .brand-link .brand-image { box-shadow: none !important; border-radius: 8px !important; }
+body.sidebar-mini .sidebar .user-panel { border-bottom: 1px solid var(--sb-line) !important; }
+body.sidebar-mini .sidebar .user-panel .info a,
+body.sidebar-mini .sidebar .user-panel .info { color: var(--sb-ink) !important; font-weight: 600; }
+body.sidebar-mini .sidebar .user-panel .image i { color: var(--sb-muted) !important; }
+
+body.sidebar-mini .nav-sidebar .nav-header {
+  color: var(--sb-muted) !important;
+  font-size: .7rem !important;
+  font-weight: 600;
+  letter-spacing: .06em;
+  padding: 1rem 1rem .35rem !important;
+}
+body.sidebar-mini .nav-sidebar .nav-item > .nav-link {
+  display: flex; align-items: center; gap: .15rem;
+  color: var(--sb-ink-2) !important;
+  border-radius: .75rem;
+  margin: .1rem .4rem;
+  width: calc(100% - .8rem);
+  padding: .5rem .6rem;
+  font-size: .875rem;
+}
+body.sidebar-mini .nav-sidebar .nav-link p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Menu réduit : états explicites, sans l'animation d'AdminLTE (fondu qui
+   laissait les libellés à demi visibles). Réduit : icônes seules. Survol ou
+   focus clavier : menu déplié par-dessus le contenu, libellés visibles. */
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-link p,
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-header,
+body.sidebar-mini.sidebar-collapse .main-sidebar .brand-text,
+body.sidebar-mini.sidebar-collapse .main-sidebar .user-panel .info {
+  animation: none !important;
+  transition: none !important;
+}
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(:focus-within) .nav-sidebar .nav-link p,
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(:focus-within) .nav-header,
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(:focus-within) .brand-text,
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(:focus-within) .user-panel .info {
+  display: none !important;
+}
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) .nav-sidebar .nav-link p,
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) .brand-text,
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) .user-panel .info {
+  display: inline-block !important;
+  width: auto !important;
+  margin-left: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: visible;
+  text-overflow: clip;
+}
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) .nav-header { display: block !important; }
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) {
+  box-shadow: 12px 0 32px rgba(20, 11, 48, .14) !important;
+}
+
+/* « Déconnexion » en bas du menu, comme dans le webmail (déplacée par
+   sbbs-admin.js dans .sbbs-sidebar-bottom). */
+body.sidebar-mini .main-sidebar .sidebar { padding-bottom: 4.5rem; }
+body.sidebar-mini .sbbs-sidebar-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: .5rem 0 .75rem;
+  background: var(--sb-side);
+  border-top: 1px solid var(--sb-line);
+}
+body.sidebar-mini .sbbs-sidebar-bottom .nav-link,
+body.sidebar-mini .sbbs-sidebar-bottom .nav-link .nav-icon { color: #e5484d !important; }
+body.sidebar-mini .sbbs-sidebar-bottom .nav-link:hover { background: rgba(229, 72, 77, .1) !important; }
+body.sidebar-mini .nav-sidebar .nav-link .nav-icon {
+  color: var(--sb-muted); font-size: .95rem !important; width: 1.4rem;
+}
+body.sidebar-mini .nav-sidebar .nav-item > .nav-link:hover { background: var(--sb-hover) !important; color: var(--sb-ink) !important; }
+body.sidebar-mini .nav-sidebar .nav-item > .nav-link.active {
+  background: var(--sb-accent-soft) !important;
+  color: var(--sb-accent) !important;
+  box-shadow: none !important;
+  font-weight: 600;
+}
+body.sidebar-mini .nav-sidebar .nav-link.active .nav-icon { color: var(--sb-accent); }
+
+/* --- Contenu ------------------------------------------------------------- */
+
+body.sidebar-mini .content-header { padding: 1.5rem 1.5rem .5rem; }
+body.sidebar-mini .content-header h1 { font-size: 1.5rem; font-weight: 700; color: var(--sb-ink); }
+body.sidebar-mini .content-header small { color: var(--sb-muted); }
+body.sidebar-mini .content { padding: 0 1.5rem 1.5rem; }
+
+body.sidebar-mini .card {
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  border: 1px solid var(--sb-line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(20, 11, 48, .04);
+  margin-bottom: 1.25rem;
+}
+body.sidebar-mini .card.card-outline { border-top: 1px solid var(--sb-line) !important; }
+body.sidebar-mini .card-header { background: transparent; padding: 1.1rem 1.5rem .25rem; }
+body.sidebar-mini .card-title { font-weight: 600; font-size: 1rem; color: var(--sb-ink); }
+body.sidebar-mini .card-body { padding: 1rem 1.5rem 1.4rem; }
+
+body.sidebar-mini label { color: var(--sb-ink); font-weight: 600; font-size: .9rem; }
+body.sidebar-mini .form-text, body.sidebar-mini .text-muted { color: var(--sb-muted) !important; }
+
+body.sidebar-mini .form-control,
+body.sidebar-mini .custom-select {
+  background-color: var(--sb-card);
+  color: var(--sb-ink);
+  border: 1px solid var(--sb-line);
+  border-radius: .5rem;
+  height: calc(2.5rem + 2px);
+}
+body.sidebar-mini textarea.form-control { height: auto; }
+body.sidebar-mini .form-control:focus,
+body.sidebar-mini .custom-select:focus {
+  border-color: var(--sb-accent);
+  box-shadow: 0 0 0 3px var(--sb-ring);
+}
+body.sidebar-mini .form-control:disabled,
+body.sidebar-mini .form-control[readonly] { background-color: var(--sb-bg); color: var(--sb-muted); }
+body.sidebar-mini .input-group-text {
+  background: var(--sb-bg); color: var(--sb-ink-2); border-color: var(--sb-line); border-radius: .5rem;
+}
+body.sidebar-mini input[type="checkbox"],
+body.sidebar-mini input[type="radio"] { accent-color: var(--sb-accent); }
+body.sidebar-mini input[type="range"],
+body.sidebar-mini .custom-range { accent-color: var(--sb-accent); }
+body.sidebar-mini .custom-range::-webkit-slider-thumb { background: var(--sb-accent); }
+body.sidebar-mini .custom-range::-moz-range-thumb { background: var(--sb-accent); }
+body.sidebar-mini .custom-range::-webkit-slider-runnable-track { background: var(--sb-line); }
+body.sidebar-mini .custom-range::-moz-range-track { background: var(--sb-line); }
+
+/* Boutons : le bouton d'envoi des formulaires devient le bouton principal */
+body.sidebar-mini .btn { border-radius: .5rem; font-weight: 500; }
+body.sidebar-mini .btn-primary,
+body.sidebar-mini .content form input[type="submit"].btn,
+body.sidebar-mini .content form button[type="submit"].btn {
+  background: var(--sb-accent); border-color: var(--sb-accent); color: #fff; font-weight: 600;
+  padding: .5rem 1.1rem;
+}
+body.sidebar-mini .btn-primary:hover,
+body.sidebar-mini .content form input[type="submit"].btn:hover,
+body.sidebar-mini .content form button[type="submit"].btn:hover {
+  background: var(--sb-accent-hover); border-color: var(--sb-accent-hover); color: #fff;
+}
+body.sidebar-mini .btn-default,
+body.sidebar-mini .btn-secondary {
+  background: var(--sb-card); border: 1px solid var(--sb-line); color: var(--sb-ink);
+}
+body.sidebar-mini .btn-default:hover,
+body.sidebar-mini .btn-secondary:hover { background: var(--sb-hover); color: var(--sb-ink); }
+
+/* Tableaux (utilisateurs, domaines, alias…) */
+body.sidebar-mini .table { color: var(--sb-ink); }
+body.sidebar-mini .table-bordered { border: 0; }
+body.sidebar-mini .table td,
+body.sidebar-mini .table th { border-color: var(--sb-line) !important; vertical-align: middle; }
+body.sidebar-mini .table-bordered td,
+body.sidebar-mini .table-bordered th { border-left: 0 !important; border-right: 0 !important; }
+body.sidebar-mini .table thead th {
+  background: var(--sb-bg); color: var(--sb-muted);
+  font-size: .8rem; font-weight: 600;
+  border-bottom-width: 1px !important;
+}
+body.sidebar-mini .table-hover tbody tr:hover,
+body.sidebar-mini .table tbody tr:hover { background: var(--sb-hover); }
+body.sidebar-mini .page-link { color: var(--sb-accent); background: var(--sb-card); border-color: var(--sb-line); }
+body.sidebar-mini .page-item.active .page-link { background: var(--sb-accent); border-color: var(--sb-accent); color: #fff; }
+body.sidebar-mini .page-item.disabled .page-link { background: var(--sb-card); color: var(--sb-muted); }
+body.sidebar-mini .badge-primary { background: var(--sb-accent); }
+
+/* Menus déroulants, alertes, fenêtres */
+body.sidebar-mini .dropdown-menu { background: var(--sb-card); border-color: var(--sb-line); border-radius: .6rem; }
+body.sidebar-mini .dropdown-item { color: var(--sb-ink); }
+body.sidebar-mini .dropdown-item:hover { background: var(--sb-hover); }
+body.sidebar-mini .dropdown-item.active { background: var(--sb-accent-soft); color: var(--sb-accent); }
+body.sidebar-mini .alert { border-radius: .6rem; }
+body.sidebar-mini .modal-content { background: var(--sb-card); color: var(--sb-ink); border-radius: 14px; }

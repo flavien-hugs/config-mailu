@@ -1,23 +1,57 @@
-// Palette SBBS : violet principal, menu latéral sombre.
+// Palette SBBS : fonds clairs et neutres, violet réservé aux actions et à la
+// sélection (esprit Gmail / Proton). Mode sombre accordé à la page de
+// connexion. Le mode suit le système tant que l'utilisateur n'a pas choisi
+// (bouton du menu ou de la page de connexion, cookie colorMode partagé).
 
 @color-main:                #673de6;
 @color-main-dark:           #4a23c2;
 @color-link:                #673de6;
 @color-link-hover:          #4a23c2;
+@color-border:              #e6e3ef;
+@color-layout-border:       #ebe8f3;
 
-// Menu latéral (tâches : courrier, contacts, paramètres)
-@color-taskmenu-background:                     #1f1147;
-@color-taskmenu-button-selected-background:     #673de6;
-@color-taskmenu-button-background-hover:        #35207a;
-@color-taskmenu-button-action:                  #b9a6ff;
+// Menu latéral : clair, élément actif en pastille violette
+@color-taskmenu-background:                     #f6f4fc;
+@color-taskmenu-button:                         #4b4860;
+@color-taskmenu-button-selected:                @color-main;
+@color-taskmenu-button-action:                  #fff;
+@color-taskmenu-button-selected-background:     #e6ddfd;
+@color-taskmenu-button-action-background:       @color-main;
+@color-taskmenu-button-hover:                   #1f1d2b;
+@color-taskmenu-button-selected-hover:          @color-main;
 @color-taskmenu-button-action-hover:            #fff;
+@color-taskmenu-button-background-hover:        #ece6fd;
+@color-taskmenu-button-action-background-hover: #5530c9;
 
-// En-têtes et listes
-@color-layout-header-background:    #f6f4ff;
-@color-list-selected-background:    #ece6ff;
-@color-list-focus-indicator:        #8c6cf0;
+// En-têtes, barres d'outils, recherche
+@color-layout-header-background:        #fff;
+@color-toolbar-button:                  #4b4860;
+@color-toolbar-button-background-hover: #f1eefb;
+@color-searchbar-background:            #f3f1f9;
+
+// Listes (dossiers, messages)
+@color-list-selected:               #1f1d2b;
+@color-list-selected-background:    #efeafd;
+@color-list-focus-indicator:        @color-main;
+@color-list-border:                 #f0eef6;
+@color-list-secondary:              #6b6880;
 
 // Mode sombre
-@color-dark-main:                       #4a23c2;
-@color-dark-list-selected:              #b9a6ff;
-@color-dark-list-selected-background:   #2b2150;
+@color-dark-main:                       #7c5cf0;
+@color-dark-background:                 #16151d;
+@color-dark-font:                       #e3e1ec;
+@color-dark-border:                     #2d2b3a;
+@color-dark-hint:                       #9d9aad;
+@color-dark-list-selected:              #c9b8ff;
+@color-dark-list-selected-background:   #2a2440;
+@color-dark-list-badge:                 #fff;
+@color-dark-list-badge-background:      #7c5cf0;
+@color-dark-list-border:                #211f2b;
+@color-dark-input-border:               #454257;
+@color-dark-input-background:           #1b1a24;
+@color-dark-input-background-focus:     #211f2c;
+@color-dark-input-addon-background:     #262433;
+@color-dark-popover-background:         #1d1c26;
+@color-dark-popover-border:             #3a3750;
+@color-dark-scrollbar-thumb:            #4a4560;
+@color-dark-scrollbar-track:            #1d1c26;
