@@ -1,6 +1,6 @@
 #!/bin/sh
-# Compile les styles Tailwind de la page de connexion, à lancer depuis mailu/
-# après toute modification des classes de overrides/admin/login.html :
+# Compile les styles Tailwind des pages de connexion, à lancer depuis mailu/
+# après toute modification des classes de overrides/admin/*.html :
 #
 #   ./scripts/build-login.sh
 #

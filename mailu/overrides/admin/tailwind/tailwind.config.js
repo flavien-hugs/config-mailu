@@ -1,8 +1,8 @@
-// Tailwind pour la page de connexion (overrides/admin/login.html).
+// Tailwind des pages SBBS de connexion (overrides/admin/*.html).
 // Compilé par scripts/build-login.sh vers overrides/admin/sbbs-login.css.
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: { relative: true, files: ['../login.html'] },
+  content: { relative: true, files: ['../*.html'] },
   // Sombre quand <html data-theme="dark"> : posé au chargement par la page
   // (cookie colorMode partagé avec Roundcube, sinon réglage du système).
   darkMode: ['selector', '[data-theme="dark"]'],

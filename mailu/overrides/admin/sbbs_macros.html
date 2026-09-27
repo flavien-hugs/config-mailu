@@ -1,0 +1,93 @@
+{#-
+  Macros des pages SBBS de connexion (login.html, pw_change.html), montées
+  dans sso/templates/ du service admin. Classes Tailwind, compilées dans
+  sbbs-login.css par scripts/build-login.sh.
+-#}
+
+{#- Textes de Mailu absents de sa traduction française #}
+{%- set FR = {
+  'Wrong e-mail or password': 'Adresse e-mail ou mot de passe incorrect.',
+  'Too many attempts from your IP (rate-limit)': 'Trop de tentatives depuis votre adresse IP. Réessayez plus tard.',
+  'Too many attempts for this user (rate-limit)': 'Trop de tentatives pour ce compte. Réessayez plus tard.',
+  "The new password can't be the same as the old password": "Le nouveau mot de passe doit être différent de l'actuel.",
+  "The new passwords don't match": 'Les deux nouveaux mots de passe ne correspondent pas.',
+  'The current password is incorrect!': 'Le mot de passe actuel est incorrect.',
+  'This password is too short.': 'Ce mot de passe est trop court.',
+  'New password': 'Nouveau mot de passe',
+  'New password (again)': 'Confirmer le nouveau mot de passe',
+  'Change password': 'Changer le mot de passe',
+} %}
+
+{%- macro tr(text) -%}
+  {%- set text = text|string -%}
+  {%- if get_locale()|string == 'fr' and text in FR %}{{ FR[text] }}
+  {%- elif get_locale()|string == 'fr' and text.startswith('This password appears in ') -%}
+    Ce mot de passe apparaît dans {{ text.split(' ')[4] }} fuites de données connues : choisissez-en un autre.
+  {%- else %}{{ text }}{% endif -%}
+{%- endmacro %}
+
+{%- macro flashes() %}
+{%- with messages = get_flashed_messages(with_categories=true) %}
+{%- for category, message in messages %}
+<div role="alert" class="mb-5 flex items-start gap-2.5 rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:bg-[#3a1618] dark:text-[#ffb4ab]">
+  <svg class="mt-0.5 h-4 w-4 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+  <span>{{ tr(message) }}</span>
+</div>
+{%- endfor %}
+{%- endwith %}
+{%- endmacro %}
+
+{%- set INPUT = "h-[46px] w-full rounded-lg border border-line bg-transparent pl-11 text-ink outline-none transition-[border-color,box-shadow] focus:border-brand focus:ring-[3px] focus:ring-brand/20 dark:border-line-dark dark:text-ink-dark" %}
+{%- set ICON = "pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted dark:text-muted-dark" %}
+
+{%- macro icon(name) -%}
+{%- if name == 'mail' -%}
+<svg class="{{ ICON }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+{%- elif name == 'key' -%}
+<svg class="{{ ICON }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M16 7l3 3M19 4l2 2"/></svg>
+{%- else -%}
+<svg class="{{ ICON }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+{%- endif -%}
+{%- endmacro %}
+
+{%- macro errors(field) %}
+{%- if field.errors %}<ul class="mt-1.5 text-[13px] text-red-700 dark:text-[#ffb4ab]">{% for e in field.errors %}<li>{{ tr(e) }}</li>{% endfor %}</ul>{% endif %}
+{%- endmacro %}
+
+{#- Champ texte avec icône à gauche #}
+{%- macro text_field(field, icon_name, label=None) %}
+<div class="mb-5">
+  <label for="{{ field.id }}" class="mb-2 block text-sm font-semibold">{{ label or tr(field.label.text) }}</label>
+  <div class="relative">
+    {{ icon(icon_name) }}
+    {{ field(class=INPUT ~ " pr-3.5 placeholder:text-muted/60 dark:placeholder:text-muted-dark/60", **kwargs) }}
+  </div>
+  {{ errors(field) }}
+</div>
+{%- endmacro %}
+
+{#- Mot de passe : icône à gauche, bouton afficher / masquer à droite #}
+{%- macro password_field(field, icon_name='lock', label=None) %}
+<div class="mb-5">
+  <label for="{{ field.id }}" class="mb-2 block text-sm font-semibold">{{ label or tr(field.label.text) }}</label>
+  <div class="relative">
+    {{ icon(icon_name) }}
+    {{ field(class=INPUT ~ " pr-12", required=True, **kwargs) }}
+    <button type="button" data-toggle-pw="{{ field.id }}" aria-label="Afficher le mot de passe" aria-pressed="false"
+            class="absolute right-1.5 top-1/2 grid h-[34px] w-[34px] -translate-y-1/2 place-items-center rounded-md text-muted hover:text-ink dark:text-muted-dark dark:hover:text-ink-dark">
+      <svg class="eye h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      <svg class="eye-off hidden h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17.9 17.9A10.1 10.1 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.1-5.9M9.9 5.2A9.1 9.1 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.2 3.2M14.1 14.1a3 3 0 1 1-4.2-4.2M1 1l22 22"/></svg>
+    </button>
+  </div>
+  {{ errors(field) }}
+</div>
+{%- endmacro %}
+
+{#- Bouton principal #}
+{%- macro submit(name, label) %}
+<button type="submit" name="{{ name }}" value="{{ name }}"
+        class="mt-2 flex h-[46px] w-full items-center justify-center gap-2 rounded-lg bg-brand text-base font-semibold text-white transition hover:bg-brand-600 focus:outline-none focus-visible:ring-[3px] focus-visible:ring-brand/40">
+  {{ label }}
+  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+</button>
+{%- endmacro %}

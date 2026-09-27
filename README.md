@@ -369,20 +369,41 @@ serveur peut lire les mails, sauf ceux chiffrés en PGP.
 ## Apparence
 
 Le webmail est Roundcube (`WEBMAIL=roundcube`) avec le thème SBBS : Elastic
-recompilé avec une palette violette, un logo et un filigrane SBBS.
+recompilé avec une mise en page épurée, dans l'esprit de Gmail / Proton :
+
+- fonds clairs et neutres, violet réservé aux actions et à la sélection ;
+- menu latéral clair, petites icônes avec libellé à droite, « Rédiger » en
+  bouton principal, « À propos » masqué ;
+- bouton du plugin Mailu renommé « Mon compte » (icône de compte) : il ouvre
+  la gestion du compte (mot de passe, réponse automatique, comptes externes,
+  jetons) ;
+- menu réductible (bouton ☰ en haut du menu) : icônes seules, choix mémorisé
+  dans le navigateur ; sur tablette et téléphone, comportement d'Elastic ;
+- bouton clair / sombre en haut à droite de l'écran ;
+- barres d'outils en icônes seules (libellés en infobulle et pour les
+  lecteurs d'écran), sauf sur tablette et téléphone ;
+- dossier courant en pastille, recherche arrondie, listes plus aérées ;
+- mode sombre accordé à la page de connexion. Le thème suit le système tant
+  que l'utilisateur n'a pas choisi (bouton du menu ou de la page de
+  connexion : même cookie `colorMode`).
 
 ```
 overrides/roundcube/skins/sbbs/
-  styles/_variables.less   couleurs (@color-main, menu latéral, mode sombre)
-  styles/_styles.less      retouches (arrondis, graisse des boutons)
+  styles/_variables.less   palette claire et sombre (variables d'Elastic)
+  styles/_styles.less      mise en page (menu, barres d'outils, listes, sombre)
   styles/styles.less       point d'entrée : Elastic + les deux fichiers ci-dessus
   styles/styles.min.css    CSS compilé, commité (le serveur n'a pas besoin de Node)
   meta.json                nom du produit et logos (bloc "config")
   images/                  logos SVG
   watermark.html           filigrane du volet de lecture vide
+  templates/includes/menu.html  menu latéral d'Elastic + bouton ☰ (réduire)
 ```
 
-Ces fichiers sont montés par-dessus ceux d'Elastic dans `compose.yml`. Pas de
+Ces fichiers sont montés par-dessus ceux d'Elastic dans `compose.yml`.
+`templates/includes/menu.html` est une copie du template d'Elastic avec le
+bouton ☰ en plus : à recomparer avec l'original à chaque mise à jour de
+`MAILU_VERSION`. Le JavaScript de ce bouton ne peut pas être injecté par
+`front`, les pages du webmail arrivant compressées. Pas de
 fichier `.inc.php` : le durcissement PHP de l'image (snuffleupagus) refuse
 d'exécuter un fichier de config monté depuis l'hôte, et le webmail répond
 alors 500. Le bloc `config` de `meta.json` est appliqué par Roundcube à toute
@@ -405,7 +426,11 @@ réécrire, redémarrer `webmail`.
 
 La page de connexion (SSO, commune au webmail et à l'admin) est remplacée par
 `overrides/admin/login.html`, monté sur le template `sso/templates/login.html`
-du service `admin` : carte centrée sur fond dégradé, logo et nom centrés
+du service `admin`. La page de changement de mot de passe imposé
+(`/sso/pw_change`) suit le même design, sans menu latéral :
+`overrides/admin/pw_change.html`. Les deux partagent `sbbs_base.html` (mise en
+page, pied de page) et `sbbs_macros.html` (champs avec icône, mot de passe
+affichable, messages de Mailu traduits en français). Page de connexion : carte centrée sur fond dégradé, logo et nom centrés
 au-dessus, bouton clair / sombre en haut à droite, affichage du mot de passe,
 mention « © <année> <SITENAME> · Maintenu par SBBS Technology » en bas
 (année calculée par le navigateur).
@@ -448,6 +473,16 @@ redirections, vérification des mots de passe compromis) ne change pas.
   au lieu de le réécrire, le montage garde l'ancien : utiliser
   `docker compose up -d --force-recreate admin`. À revérifier à chaque mise à jour
   de `MAILU_VERSION`, le template d'origine pouvant évoluer.
+
+L'administration a un thème épuré assorti (menu clair, cartes arrondies sans
+bordure bleue, tableaux allégés, bouton principal violet, bouton clair /
+sombre dans la barre du haut, logo SBBS) : `overrides/admin/sbbs-admin.css`
+et `sbbs-admin.js`, servis par `admin` sous `/static/` et chargés dans chaque
+page par `overrides/nginx/admin-ui.conf`. Styles limités aux pages AdminLTE
+(`body.sidebar-mini`) : la page de connexion n'est pas touchée. Le bandeau du
+logo n'utilise plus `LOGO_BACKGROUND` dans l'admin (fond géré par le thème).
+Modification des fichiers : recharger la page (Cmd+Shift+R), pas de
+compilation.
 
 `overrides/nginx/admin-ui.conf` masque, dans l'admin, le pied de page
 (« Built with ♥ using Flask and AdminLTE », GitHub, version de Mailu) et les

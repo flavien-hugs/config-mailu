@@ -1,0 +1,87 @@
+<!--
+  Thème SBBS : copie de skins/elastic/templates/includes/menu.html (Roundcube
+  1.6, Mailu 2024.06), montée par compose.yml, avec en plus le bouton qui
+  réduit / déplie le menu latéral (choix mémorisé dans le navigateur) et le
+  renommage du bouton « Mailu » en « Mon compte ».
+  À recomparer avec l'original à chaque mise à jour de MAILU_VERSION.
+-->
+<div id="layout-menu">
+	<h2 id="aria-label-tasknav" class="voice"><roundcube:label name="arialabeltasknav" /></h2>
+	<div class="popover-header">
+		<roundcube:object name="logo" src="/images/logo.svg" id="logo" alt="Logo" />
+		<a class="button icon cancel"><span class="inner"><roundcube:label name="close" /></span></a>
+	</div>
+	<a id="sbbs-menu-toggle" class="sbbs-menu-toggle" href="#" role="button" aria-controls="taskmenu" aria-expanded="true" title="Réduire / déplier le menu">
+		<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+		<span class="voice">Réduire / déplier le menu</span>
+	</a>
+	<div id="taskmenu" class="menu toolbar" role="navigation" aria-labelledby="aria-label-tasknav">
+		<span class="action-buttons">
+			<roundcube:if condition="env:action == 'compose' and env:task == 'mail'" />
+				<roundcube:button command="compose" type="link" class="compose selected"
+					label="compose" title="writenewmessage" innerclass="inner" />
+			<roundcube:else />
+				<roundcube:button command="compose" type="link" class="compose"
+					label="compose" title="writenewmessage" innerclass="inner"
+					data-fab="true" data-fab-task="mail" data-fab-action="none" />
+			<roundcube:endif />
+		</span>
+		<roundcube:if condition="env:action == 'compose' and env:task == 'mail'" />
+			<roundcube:button command="mail" label="mail" type="link" innerClass="inner"
+				class="mail" />
+		<roundcube:else />
+			<roundcube:button command="mail" label="mail" type="link" innerClass="inner"
+				class="mail" classSel="mail selected" />
+		<roundcube:endif />
+		<roundcube:button command="addressbook" label="contacts" type="link" innerClass="inner"
+			class="contacts" classSel="contacts selected" />
+		<roundcube:container name="taskbar" id="taskmenu" />
+		<roundcube:button command="settings" label="settings" type="link" innerClass="inner"
+			class="settings" classSel="settings selected" />
+		<span class="special-buttons">
+			<roundcube:if condition="config:dark_mode_support" />
+				<roundcube:add_label name="darkmode" />
+				<roundcube:add_label name="lightmode" />
+				<roundcube:button name="theme" label="darkmode" type="link" innerClass="inner" class="theme dark" />
+			<roundcube:endif />
+			<roundcube:button name="about" label="about" type="link"
+				class="about" innerClass="inner" onclick="UI.about_dialog(this)" />
+			<roundcube:button command="logout" label="logout" type="link"
+				class="logout" innerClass="inner" />
+		</span>
+	</div>
+</div>
+<script>
+	// Bouton du plugin Mailu (gestion du compte : mot de passe, réponse
+	// automatique, comptes externes, jetons) : « Mailu » -> « Mon compte ».
+	// Réappliqué après l'initialisation de Roundcube, qui réécrit les libellés.
+	(function () {
+		var rename = function () {
+			var a = document.querySelector('#taskmenu a.button-mailu');
+			if (!a) return;
+			var label = a.querySelector('.inner');
+			if (label && label.textContent !== 'Mon compte') label.textContent = 'Mon compte';
+			a.title = 'Mon compte : mot de passe, réponse automatique, jetons';
+		};
+		rename();
+		if (window.rcmail && rcmail.addEventListener) rcmail.addEventListener('init', rename);
+		window.addEventListener('load', rename);
+	})();
+
+	// Menu latéral réductible (écrans larges) : classe sur <html>, mémorisée.
+	(function () {
+		var key = 'sbbs-menu-collapsed', root = document.documentElement,
+			btn = document.getElementById('sbbs-menu-toggle');
+		var apply = function (collapsed) {
+			root.classList.toggle('sbbs-menu-collapsed', collapsed);
+			if (btn) btn.setAttribute('aria-expanded', String(!collapsed));
+		};
+		try { apply(localStorage.getItem(key) === '1'); } catch (e) { }
+		if (btn) btn.addEventListener('click', function (e) {
+			e.preventDefault();
+			var collapsed = !root.classList.contains('sbbs-menu-collapsed');
+			apply(collapsed);
+			try { localStorage.setItem(key, collapsed ? '1' : '0'); } catch (e) { }
+		});
+	})();
+</script>
