@@ -3,6 +3,74 @@
 Stack mail Mailu exécutée en local sur macOS / Docker Desktop, qui sert de
 banc d'essai avant un déploiement sur un VPS.
 
+## Architecture
+
+Flux sur le serveur (`mail.sbbs-technology.com`). En local, nginx-proxy est
+absent : le navigateur joint `front` directement sur 80.
+
+```mermaid
+flowchart LR
+    subgraph ext["Internet"]
+        browser["Navigateur"]
+        client["Client mail<br/>(Thunderbird, Outlook, mobile)"]
+        mx["Serveurs mail externes<br/>(Gmail, Outlook…)"]
+    end
+
+    subgraph host["VPS"]
+        proxy["nginx-proxy<br/>+ acme-companion<br/>HTTPS 443"]
+        certs[("Certificats<br/>Let's Encrypt")]
+
+        subgraph mailu["Stack Mailu (compose.yml)"]
+            front["front<br/>nginx + dovecot proxy<br/>25 · 465 · 587 · 993 · 995"]
+            admin["admin<br/>SSO, comptes, DKIM"]
+            webmail["webmail<br/>Roundcube, thème SBBS"]
+            smtp["smtp<br/>Postfix"]
+            imap["imap<br/>Dovecot"]
+            antispam["antispam<br/>Rspamd"]
+            antivirus["antivirus<br/>ClamAV"]
+            oletools["oletools<br/>macros Office"]
+            redis[("redis")]
+            db[("database<br/>PostgreSQL<br/>mailu · roundcube")]
+            resolver["resolver<br/>Unbound (DNS)"]
+            fetchmail["fetchmail"]
+            webdav["webdav<br/>Radicale"]
+            maildir[("mail/<br/>boîtes aux lettres")]
+        end
+    end
+
+    browser -- "HTTPS" --> proxy
+    proxy -- "HTTP :80<br/>réseau proxy" --> front
+    proxy -. "certificat" .-> certs
+    certs -. "TLS mail<br/>(lecture seule)" .-> front
+
+    client -- "IMAPS 993 · SMTP 465 / 587" --> front
+    mx -- "SMTP 25" --> front
+
+    front -- "/admin · /sso" --> admin
+    front -- "/webmail" --> webmail
+    front -- "/webdav" --> webdav
+    front -- "authentification" --> admin
+    front -- "SMTP" --> smtp
+    front -- "IMAP / POP3" --> imap
+
+    smtp -- "filtrage" --> antispam
+    antispam -- "pièces jointes" --> antivirus
+    antispam -- "documents Office" --> oletools
+    antispam --- redis
+    smtp -- "LMTP (livraison, via front)" --> imap
+    imap --- maildir
+    smtp -- "envoi sortant<br/>SMTP 25" --> mx
+
+    admin --- db
+    webmail --- db
+    admin --- redis
+    webmail -- "IMAP / SMTP" --> front
+    fetchmail -- "relève des comptes externes" --> smtp
+
+    smtp -. "DNS" .-> resolver
+    antispam -. "DNS" .-> resolver
+```
+
 ## Organisation
 
 ```
