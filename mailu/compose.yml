@@ -442,7 +442,13 @@ services:
 
     volumes:
       - ./webmail:/data
-      - ./overrides/roundcube:/overrides:ro
+      # Fichiers de config Roundcube (*.inc.php, dont sbbs-defaults.inc.php :
+      # préférences par défaut, voir scripts/export-webmail-prefs.sh), préparés
+      # par le service webmail-config. Lecture seule obligatoire : le
+      # durcissement PHP de l'image (snuffleupagus) refuse d'exécuter un
+      # fichier que le processus peut modifier ou qui lui appartient (et
+      # l'initialisation de Mailu tourne en root).
+      - webmail-overrides:/overrides:ro
       # Thème SBBS, posé par-dessus Elastic fichier par fichier : Roundcube
       # applique le bloc "config" de meta.json (nom du produit, logos), sans
       # fichier PHP que snuffleupagus refuserait d'exécuter.
@@ -462,6 +468,34 @@ services:
         condition: service_started
       database:
         condition: service_healthy
+      webmail-config:
+        condition: service_completed_successfully
+
+
+  # ---------------------------------------------
+  # Préparation de la config Roundcube (tâche ponctuelle)
+  # Copie overrides/roundcube/*.inc.php dans le volume webmail-overrides,
+  # propriétaire nobody, lecture seule : seule forme que le durcissement PHP
+  # du webmail accepte d'exécuter. Relancée à chaque « up ».
+  # ---------------------------------------------
+
+  webmail-config:
+    image: ghcr.io/mailu/webmail:${MAILU_VERSION:?lancer avec --env-file mailu.env}
+    restart: "no"
+    network_mode: none
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        rm -f /out/*.inc.php
+        for f in /src/*.inc.php; do [ -e "$$f" ] && cp "$$f" /out/; done
+        chown -R 65534:65534 /out
+        chmod 555 /out
+        chmod 444 /out/*.inc.php 2>/dev/null || true
+        ls -l /out
+    volumes:
+      - ./overrides/roundcube:/src:ro
+      - webmail-overrides:/out
 
 
 # ---------------------------------------------
@@ -504,3 +538,5 @@ volumes:
   mailqueue:
   # Volume nommé : postgres refuse un répertoire de données qu'il ne peut pas chown.
   pgdata:
+  # Config Roundcube préparée par webmail-config, montée en lecture seule.
+  webmail-overrides:

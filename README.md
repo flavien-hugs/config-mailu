@@ -85,6 +85,7 @@ mailu/
   scripts/backup.sh  sauvegarde bases + mails + DKIM + config (voir « Sauvegardes »)
   scripts/build-skin.sh  compile le thème du webmail (voir « Apparence »)
   scripts/build-login.sh compile les styles Tailwind de la page de connexion
+  scripts/export-webmail-prefs.sh  préférences webmail par défaut (voir « Préférences du webmail »)
   certs/ dkim/       générés à l'exécution (contenu ignoré par git)
   data/ mail/ filter/ redis/ webmail/ clamav/ dav/   état, ignoré par git
 ```
@@ -492,6 +493,37 @@ liens Configuration client, Site web et Aide du menu : nginx (`front`) injecte
 une règle CSS dans les pages qu'il relaie, sans toucher aux templates. Pas de
 caractère `$` dans cette règle (nginx le lirait comme une variable et `front`
 ne démarrerait plus).
+
+## Préférences du webmail par défaut
+
+Les préférences Roundcube d'un compte de référence (tri, fenêtres de lecture
+et de rédaction, accusés de réception, correcteur, archivage…) servent de
+valeurs par défaut à tous les comptes, existants comme futurs. Ce sont des
+valeurs par défaut : chaque utilisateur peut les modifier, et un réglage
+qu'il a déjà changé n'est pas touché.
+
+1. Régler les préférences voulues dans le webmail du compte de référence.
+2. Exporter (stack démarrée) :
+
+   ```sh
+   cd mailu
+   ./scripts/export-webmail-prefs.sh                  # compte admin initial
+   ./scripts/export-webmail-prefs.sh prenom@domaine   # ou un autre compte
+   ```
+
+   Produit `overrides/roundcube/sbbs-defaults.inc.php`, à commiter. Réglages
+   propres à un compte exclus (jeton client, dossiers personnels).
+3. Appliquer : `docker compose --env-file mailu.env up -d --force-recreate
+   webmail` (sur le serveur : après `git pull`, même commande).
+
+À chaque démarrage, le service ponctuel `webmail-config` copie
+`overrides/roundcube/*.inc.php` dans le volume `webmail-overrides`
+(propriétaire `nobody`, lecture seule), monté en lecture seule sur
+`/overrides` du webmail. C'est la seule forme que le durcissement PHP de
+l'image (snuffleupagus) accepte d'exécuter : il refuse tout fichier que le
+processus peut modifier ou qui lui appartient, et l'initialisation de Mailu
+tourne en root. Un fichier PHP monté directement depuis l'hôte fait donc
+redémarrer `webmail` en boucle.
 
 ## Sauvegardes
 
