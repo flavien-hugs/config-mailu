@@ -400,14 +400,31 @@ fichiers (logos, `meta.json`, `watermark.html`) sont pris en compte au
 rechargement de la page ; si un éditeur remplace le fichier au lieu de le
 réécrire, redémarrer `webmail`.
 
-La page de connexion est celle de Mailu (SSO), pas celle de Roundcube : elle
-se règle avec `SITENAME`, `LOGO_URL` (URL publique d'une image) et
-`LOGO_BACKGROUND` dans `mailu.env`.
+### Page de connexion et administration Mailu
 
-Le pied de page de l'admin et de la page de connexion (« Built with ♥ using
-Flask and AdminLTE », lien GitHub, version de Mailu) est masqué par
-`overrides/nginx/hide-footer.conf` : nginx (`front`) injecte une règle CSS
-dans les pages HTML qu'il relaie, sans toucher aux templates de Mailu.
+La page de connexion (SSO, commune au webmail et à l'admin) est remplacée par
+`overrides/admin/login.html`, monté sur le template `sso/templates/login.html`
+du service `admin` : carte centrée sur fond dégradé, logo et nom en haut à
+gauche, choix de la langue, affichage du mot de passe, mode sombre. Mêmes
+champs que l'original : la logique de Mailu (SSO, limitation des tentatives,
+redirections, vérification des mots de passe compromis) ne change pas.
+
+- « Se connecter » ouvre le webmail ; « Accéder à l'administration » l'admin.
+- « Un problème pour se connecter ? » écrit à `POSTMASTER@DOMAIN`.
+- Logo : `LOGO_URL` s'il est défini, sinon l'icône SBBS intégrée ; nom :
+  `SITENAME`.
+- Les messages d'erreur de Mailu absents de sa traduction française sont
+  traduits dans le template.
+- Après une modification du template : `docker compose restart admin`
+  (Flask garde les templates en mémoire). À revérifier à chaque mise à jour
+  de `MAILU_VERSION`, le template d'origine pouvant évoluer.
+
+`overrides/nginx/admin-ui.conf` masque, dans l'admin, le pied de page
+(« Built with ♥ using Flask and AdminLTE », GitHub, version de Mailu) et les
+liens Configuration client, Site web et Aide du menu : nginx (`front`) injecte
+une règle CSS dans les pages qu'il relaie, sans toucher aux templates. Pas de
+caractère `$` dans cette règle (nginx le lirait comme une variable et `front`
+ne démarrerait plus).
 
 ## Sauvegardes
 
