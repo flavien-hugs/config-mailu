@@ -90,7 +90,16 @@ docker compose logs -f front admin antivirus
 
 - acme-companion obtient le certificat de `mail.sbbs-technology.com` en 1 à
   2 minutes. En attendant, `front` affiche « Missing cert or key file,
-  disabling TLS », puis active le TLS mail seul.
+  disabling TLS » et une erreur `doveconf: Fatal ... ssl_cert` : normal au
+  tout premier démarrage (voir Dépannage). Dès que le certificat est là,
+  redémarrer `front` **une fois** :
+
+  ```sh
+  ls -l <FRONT_CERTS_DIR>/mail.sbbs-technology.com.crt   # attendre qu'il existe
+  docker compose restart front
+  ```
+
+  Les renouvellements suivants sont pris en compte sans redémarrage.
 - ClamAV télécharge ses signatures : jusqu'à 10 minutes avant `healthy`.
 - Pas de Node sur le serveur : le CSS du thème est déjà compilé.
 
@@ -189,3 +198,32 @@ nginx-proxy joint `front` par le réseau Docker (`VIRTUAL_PORT=80`), pas par
 ces ports : les lier à `127.0.0.1` ne coupe pas le webmail. Si `8080` / `8443`
 sont eux-mêmes pris (`ss -ltnp | grep -E ':8080|:8443'`), choisir d'autres
 ports.
+
+**`FileNotFoundError: ... '/certs/mail.sbbs-technology.com'`** puis
+**`doveconf: Fatal: ... ssl_cert: Can't open file /certs/.../fullchain.pem`**
+
+Le certificat n'existe pas encore (premier démarrage), et `mailu.env` vise
+`mail.sbbs-technology.com/fullchain.pem`. Mailu surveille le *dossier* du
+certificat : absent, sa surveillance plante et il ne verra jamais arriver le
+certificat. Utiliser les liens qu'acme-companion pose à la racine de son
+répertoire (toujours présente) :
+
+```sh
+sed -i -e 's|^TLS_CERT_FILENAME=.*|TLS_CERT_FILENAME=mail.sbbs-technology.com.crt|' \
+       -e 's|^TLS_KEYPAIR_FILENAME=.*|TLS_KEYPAIR_FILENAME=mail.sbbs-technology.com.key|' mailu.env
+docker compose --env-file mailu.env up -d
+```
+
+Puis attendre le certificat et redémarrer `front` une fois (étape 5).
+Si le certificat n'arrive pas après quelques minutes :
+
+```sh
+docker logs <conteneur-acme-companion> 2>&1 | grep -i sbbs   # erreurs Let's Encrypt
+dig +short mail.sbbs-technology.com                          # doit donner l'IP du VPS
+docker inspect mailu-front-1 -f '{{range .Config.Env}}{{println .}}{{end}}' | grep -E 'VIRTUAL|LETSENCRYPT'
+ls -l <FRONT_CERTS_DIR>                                       # bon répertoire ?
+```
+
+Causes courantes : enregistrement A pas encore propagé, `FRONT_CERTS_DIR`
+qui n'est pas le `/etc/nginx/certs` d'acme-companion, ou `PROXY_NETWORK` qui
+n'est pas le réseau de nginx-proxy.

@@ -189,10 +189,14 @@ Dans `mailu.env` du serveur :
   - `FRONT_CERTS_DIR` = le répertoire des certificats d'acme-companion sur
     l'hôte (pour un volume nommé : `docker volume inspect <volume> -f
     '{{.Mountpoint}}'`) ;
-  - `TLS_FLAVOR=mail`, `TLS_CERT_FILENAME=<domaine>/fullchain.pem`,
-    `TLS_KEYPAIR_FILENAME=<domaine>/key.pem`. Au premier démarrage, le
-    certificat n'existe pas encore : le frontal démarre sans TLS mail puis
-    l'active dès qu'acme-companion l'a obtenu.
+  - `TLS_FLAVOR=mail`, `TLS_CERT_FILENAME=<domaine>.crt`,
+    `TLS_KEYPAIR_FILENAME=<domaine>.key` (liens posés par acme-companion à la
+    racine de son répertoire ; pas `<domaine>/fullchain.pem`, dont Mailu
+    surveille le dossier, absent au premier démarrage). Au premier démarrage, le
+    certificat n'existe pas encore : le frontal démarre sans TLS mail, et le
+    proxy IMAP / POP3 (dovecot) ne démarre pas. Une fois le certificat obtenu,
+    redémarrer `front` une fois ; les renouvellements sont ensuite pris en
+    compte seuls.
 - Vraie IP des clients web : `REAL_IP_HEADER=X-Forwarded-For` et
   `REAL_IP_FROM` = le sous-réseau de `PROXY_NETWORK`
   (`docker network inspect <réseau> -f '{{(index .IPAM.Config 0).Subnet}}'`).
