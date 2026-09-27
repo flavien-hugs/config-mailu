@@ -7,6 +7,7 @@
  * - Bouton clair / sombre dans la barre du haut.
  * - Logo SBBS à la place de celui de Mailu (si LOGO_URL n'est pas défini) et
  *   bandeau du logo sans couleur imposée : le thème gère le fond.
+ * - « Déconnexion » déplacée en bas du menu latéral.
  */
 (function () {
   var root = document.documentElement;
@@ -27,6 +28,21 @@
       brand.style.removeProperty('background-color');
       var img = brand.querySelector('img.mailu-logo');
       if (img && /\/static\/mailu\.png$/.test(img.getAttribute('src') || '')) img.src = LOGO;
+    }
+
+    // « Déconnexion » en bas du menu latéral, comme dans le webmail.
+    var logout = document.querySelector('.main-sidebar .nav-sidebar a[href$="/sso/logout"]');
+    var sidebar = document.querySelector('.main-sidebar');
+    if (logout && sidebar) {
+      var item = logout.closest('li');
+      var box = document.createElement('div');
+      box.className = 'sbbs-sidebar-bottom';
+      var ul = document.createElement('ul');
+      ul.className = 'nav nav-pills nav-sidebar flex-column';
+      ul.setAttribute('role', 'menu');
+      ul.appendChild(item);
+      box.appendChild(ul);
+      sidebar.appendChild(box);
     }
 
     var nav = document.querySelector('.main-header .navbar-nav.ml-auto');

@@ -199,6 +199,41 @@
 			margin: .5rem .6rem .75rem;
 		}
 
+
+		// Survol du menu réduit : il se déplie par-dessus la colonne voisine
+		// (marge négative : la mise en page ne bouge pas), libellés visibles.
+		#layout-menu:hover {
+			width: @menu-width-expanded;
+			margin-right: -(@menu-width-expanded - @menu-width-collapsed);
+			z-index: 50;
+			box-shadow: 12px 0 32px rgba(20, 11, 48, .14);
+
+			#logo {
+				display: inline;
+			}
+
+			.sbbs-menu-toggle {
+				right: .5rem;
+			}
+
+			#taskmenu a:not(.theme) {
+				justify-content: flex-start;
+				padding: 0 .85rem !important;
+				margin: .1rem .5rem;
+
+				span.inner {
+					position: static;
+					width: auto;
+					height: auto;
+					clip: auto;
+					overflow: hidden;
+				}
+			}
+
+			#taskmenu a.compose {
+				margin: .5rem .5rem .75rem;
+			}
+		}
 	}
 }
 

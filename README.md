@@ -378,7 +378,8 @@ recompilé avec une mise en page épurée, dans l'esprit de Gmail / Proton :
   la gestion du compte (mot de passe, réponse automatique, comptes externes,
   jetons) ;
 - menu réductible (bouton ☰ en haut du menu) : icônes seules, choix mémorisé
-  dans le navigateur ; sur tablette et téléphone, comportement d'Elastic ;
+  dans le navigateur ; au survol, le menu réduit se déplie par-dessus la
+  colonne voisine avec ses libellés, sans décaler la mise en page ; sur tablette et téléphone, comportement d'Elastic ;
 - bouton clair / sombre en haut à droite de l'écran ;
 - barres d'outils en icônes seules (libellés en infobulle et pour les
   lecteurs d'écran), sauf sur tablette et téléphone ;
@@ -474,9 +475,10 @@ redirections, vérification des mots de passe compromis) ne change pas.
   `docker compose up -d --force-recreate admin`. À revérifier à chaque mise à jour
   de `MAILU_VERSION`, le template d'origine pouvant évoluer.
 
-L'administration a un thème épuré assorti (menu clair, cartes arrondies sans
-bordure bleue, tableaux allégés, bouton principal violet, bouton clair /
-sombre dans la barre du haut, logo SBBS) : `overrides/admin/sbbs-admin.css`
+L'administration a un thème épuré assorti (menu clair, « Déconnexion » en bas
+du menu comme dans le webmail, menu réduit en icônes seules qui se déplie au
+survol, cartes arrondies sans bordure bleue, tableaux allégés, bouton
+principal violet, bouton clair / sombre dans la barre du haut, logo SBBS) : `overrides/admin/sbbs-admin.css`
 et `sbbs-admin.js`, servis par `admin` sous `/static/` et chargés dans chaque
 page par `overrides/nginx/admin-ui.conf`. Styles limités aux pages AdminLTE
 (`body.sidebar-mini`) : la page de connexion n'est pas touchée. Le bandeau du

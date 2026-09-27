@@ -106,6 +106,50 @@ body.sidebar-mini .nav-sidebar .nav-item > .nav-link {
   font-size: .875rem;
 }
 body.sidebar-mini .nav-sidebar .nav-link p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Menu réduit : états explicites, sans l'animation d'AdminLTE (fondu qui
+   laissait les libellés à demi visibles). Réduit : icônes seules. Survol ou
+   focus clavier : menu déplié par-dessus le contenu, libellés visibles. */
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-sidebar .nav-link p,
+body.sidebar-mini.sidebar-collapse .main-sidebar .nav-header,
+body.sidebar-mini.sidebar-collapse .main-sidebar .brand-text,
+body.sidebar-mini.sidebar-collapse .main-sidebar .user-panel .info {
+  animation: none !important;
+  transition: none !important;
+}
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(:focus-within) .nav-sidebar .nav-link p,
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(:focus-within) .nav-header,
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(:focus-within) .brand-text,
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover):not(:focus-within) .user-panel .info {
+  display: none !important;
+}
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) .nav-sidebar .nav-link p,
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) .brand-text,
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) .user-panel .info {
+  display: inline-block !important;
+  width: auto !important;
+  margin-left: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: visible;
+  text-overflow: clip;
+}
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) .nav-header { display: block !important; }
+body.sidebar-mini.sidebar-collapse .main-sidebar:is(:hover, :focus-within) {
+  box-shadow: 12px 0 32px rgba(20, 11, 48, .14) !important;
+}
+
+/* « Déconnexion » en bas du menu, comme dans le webmail (déplacée par
+   sbbs-admin.js dans .sbbs-sidebar-bottom). */
+body.sidebar-mini .main-sidebar .sidebar { padding-bottom: 4.5rem; }
+body.sidebar-mini .sbbs-sidebar-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: .5rem 0 .75rem;
+  background: var(--sb-side);
+  border-top: 1px solid var(--sb-line);
+}
+body.sidebar-mini .sbbs-sidebar-bottom .nav-link,
+body.sidebar-mini .sbbs-sidebar-bottom .nav-link .nav-icon { color: #e5484d !important; }
+body.sidebar-mini .sbbs-sidebar-bottom .nav-link:hover { background: rgba(229, 72, 77, .1) !important; }
 body.sidebar-mini .nav-sidebar .nav-link .nav-icon {
   color: var(--sb-muted); font-size: .95rem !important; width: 1.4rem;
 }
