@@ -46,7 +46,7 @@ flowchart LR
     client -- "IMAPS 993 · SMTP 465 / 587" --> front
     mx -- "SMTP 25" --> front
 
-    front -- "/admin · /sso" --> admin
+    front -- "/admin · /auth/login · /sso" --> admin
     front -- "/webmail" --> webmail
     front -- "/webdav" --> webdav
     front -- "authentification" --> admin
@@ -85,6 +85,7 @@ mailu/
   scripts/backup.sh  sauvegarde bases + mails + DKIM + config (voir « Sauvegardes »)
   scripts/build-skin.sh  compile le thème du webmail (voir « Apparence »)
   scripts/build-login.sh compile les styles Tailwind de la page de connexion
+  scripts/export-webmail-prefs.sh  préférences webmail par défaut (voir « Préférences du webmail »)
   certs/ dkim/       générés à l'exécution (contenu ignoré par git)
   data/ mail/ filter/ redis/ webmail/ clamav/ dav/   état, ignoré par git
 ```
@@ -423,9 +424,27 @@ fichiers (logos, `meta.json`, `watermark.html`) sont pris en compte au
 rechargement de la page ; si un éditeur remplace le fichier au lieu de le
 réécrire, redémarrer `webmail`.
 
+### Favicon
+
+Icône SBBS (enveloppe blanche sur carré violet) dans l'onglet du navigateur,
+en favori et sur l'écran d'accueil mobile, pour la connexion, l'admin et le
+webmail. Fichiers dans `overrides/favicon/` : sources `favicon.svg` (onglet) et
+`icon-full.svg` (Apple / Android, fond plein), rendus PNG / ICO, manifeste
+web, et le `robots.txt` de Mailu (même dossier). Le dossier remplace
+`/static` de `front`, qui le sert à la racine ; `favicon.ico` recouvre aussi
+celui de Roundcube. Pour changer d'icône : remplacer les SVG, régénérer les
+PNG (16, 32, 180, 192, 512 px) et le `.ico` (16, 32, 48 px), puis recharger.
+
 ### Page de connexion et administration Mailu
 
-La page de connexion (SSO, commune au webmail et à l'admin) est remplacée par
+La page de connexion (SSO, commune au webmail et à l'admin) est à l'adresse
+**`/auth/login`** (`overrides/nginx/auth-login.conf`) : `front` la relaie vers
+`/sso/login` de Mailu, qui reste codé en dur dans l'application, et redirige
+`/sso/login` vers `/auth/login` (redirections automatiques de Mailu comprises,
+paramètres conservés). Le cookie « appareil de confiance » de Mailu est
+rattaché à `/auth/login`. Les autres adresses `/sso/*` ne changent pas.
+
+Elle est remplacée par
 `overrides/admin/login.html`, monté sur le template `sso/templates/login.html`
 du service `admin`. La page de changement de mot de passe imposé
 (`/sso/pw_change`) suit le même design, sans menu latéral :
@@ -492,6 +511,37 @@ liens Configuration client, Site web et Aide du menu : nginx (`front`) injecte
 une règle CSS dans les pages qu'il relaie, sans toucher aux templates. Pas de
 caractère `$` dans cette règle (nginx le lirait comme une variable et `front`
 ne démarrerait plus).
+
+## Préférences du webmail par défaut
+
+Les préférences Roundcube d'un compte de référence (tri, fenêtres de lecture
+et de rédaction, accusés de réception, correcteur, archivage…) servent de
+valeurs par défaut à tous les comptes, existants comme futurs. Ce sont des
+valeurs par défaut : chaque utilisateur peut les modifier, et un réglage
+qu'il a déjà changé n'est pas touché.
+
+1. Régler les préférences voulues dans le webmail du compte de référence.
+2. Exporter (stack démarrée) :
+
+   ```sh
+   cd mailu
+   ./scripts/export-webmail-prefs.sh                  # compte admin initial
+   ./scripts/export-webmail-prefs.sh prenom@domaine   # ou un autre compte
+   ```
+
+   Produit `overrides/roundcube/sbbs-defaults.inc.php`, à commiter. Réglages
+   propres à un compte exclus (jeton client, dossiers personnels).
+3. Appliquer : `docker compose --env-file mailu.env up -d --force-recreate
+   webmail` (sur le serveur : après `git pull`, même commande).
+
+À chaque démarrage, le service ponctuel `webmail-config` copie
+`overrides/roundcube/*.inc.php` dans le volume `webmail-overrides`
+(propriétaire `nobody`, lecture seule), monté en lecture seule sur
+`/overrides` du webmail. C'est la seule forme que le durcissement PHP de
+l'image (snuffleupagus) accepte d'exécuter : il refuse tout fichier que le
+processus peut modifier ou qui lui appartient, et l'initialisation de Mailu
+tourne en root. Un fichier PHP monté directement depuis l'hôte fait donc
+redémarrer `webmail` en boucle.
 
 ## Sauvegardes
 
