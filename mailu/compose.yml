@@ -240,12 +240,16 @@ services:
       INITIAL_ADMIN_DOMAIN:
       INITIAL_ADMIN_PW: ${INITIAL_ADMIN_PW:?à définir dans mailu.env}
       INITIAL_ADMIN_MODE:
+      # Liens CGU / confidentialité de la page de connexion (overrides/admin).
+      LEGAL_TERMS_ADDRESS:
+      LEGAL_PRIVACY_ADDRESS:
 
     volumes:
       - ./data:/data
       - ./dkim:/dkim
       # Page de connexion SBBS (remplace celle de Mailu, même logique).
       - ./overrides/admin/login.html:/app/mailu/sso/templates/login.html:ro
+      - ./overrides/admin/sbbs-login.css:/app/mailu/static/sbbs-login.css:ro
 
     networks:
       - default

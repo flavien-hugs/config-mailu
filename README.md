@@ -84,6 +84,7 @@ mailu/
   postgres/initdb/   crée les rôles et bases mailu + roundcube au premier démarrage
   scripts/backup.sh  sauvegarde bases + mails + DKIM + config (voir « Sauvegardes »)
   scripts/build-skin.sh  compile le thème du webmail (voir « Apparence »)
+  scripts/build-login.sh compile les styles Tailwind de la page de connexion
   certs/ dkim/       générés à l'exécution (contenu ignoré par git)
   data/ mail/ filter/ redis/ webmail/ clamav/ dav/   état, ignoré par git
 ```
@@ -404,8 +405,10 @@ réécrire, redémarrer `webmail`.
 
 La page de connexion (SSO, commune au webmail et à l'admin) est remplacée par
 `overrides/admin/login.html`, monté sur le template `sso/templates/login.html`
-du service `admin` : carte centrée sur fond dégradé, logo et nom en haut à
-gauche, bouton clair / sombre en haut à droite, affichage du mot de passe.
+du service `admin` : carte centrée sur fond dégradé, logo et nom centrés
+au-dessus, bouton clair / sombre en haut à droite, affichage du mot de passe,
+mention « © <année> <SITENAME> · Maintenu par SBBS Technology » en bas
+(année calculée par le navigateur).
 Mêmes
 champs que l'original : la logique de Mailu (SSO, limitation des tentatives,
 redirections, vérification des mots de passe compromis) ne change pas.
@@ -417,13 +420,33 @@ redirections, vérification des mots de passe compromis) ne change pas.
   le choix dans le cookie `colorMode`, le même que Roundcube : le webmail
   reprend le choix (et inversement).
 - Pas de choix de langue : celle du navigateur s'applique.
+- Liens « Conditions générales d'utilisation » et « Politique de
+  confidentialité » en bas de page : URL dans `LEGAL_TERMS_ADDRESS` et
+  `LEGAL_PRIVACY_ADDRESS` (`mailu.env`), lien masqué si vide. Les noms se
+  terminent par `_ADDRESS` parce que Mailu ne transmet à ses templates que
+  ses propres réglages et ces variables-là.
 - « Un problème pour se connecter ? » écrit à `POSTMASTER@DOMAIN`.
 - Logo : `LOGO_URL` s'il est défini, sinon l'icône SBBS intégrée ; nom :
   `SITENAME`.
 - Les messages d'erreur de Mailu absents de sa traduction française sont
   traduits dans le template.
+- Styles en Tailwind CSS (v3), compilés à l'avance : pas de CDN ni de
+  dépendance externe sur la page. Sources dans `overrides/admin/tailwind/`
+  (`tailwind.config.js` : couleurs SBBS, mode sombre sur `data-theme`),
+  résultat dans `overrides/admin/sbbs-login.css`, commité et monté dans
+  `/static/` du service `admin`. Après une modification des classes :
+
+  ```sh
+  cd mailu && ./scripts/build-login.sh   # Node / npx requis
+  docker compose --env-file mailu.env restart admin
+  ```
+
+- Icônes dans les champs (enveloppe, cadenas), sur le bouton et le lien
+  d'aide : SVG intégrés, aucune police d'icônes chargée.
 - Après une modification du template : `docker compose restart admin`
-  (Flask garde les templates en mémoire). À revérifier à chaque mise à jour
+  (Flask garde les templates en mémoire). Si un éditeur remplace le fichier
+  au lieu de le réécrire, le montage garde l'ancien : utiliser
+  `docker compose up -d --force-recreate admin`. À revérifier à chaque mise à jour
   de `MAILU_VERSION`, le template d'origine pouvant évoluer.
 
 `overrides/nginx/admin-ui.conf` masque, dans l'admin, le pied de page

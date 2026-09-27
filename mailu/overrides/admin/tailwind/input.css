@@ -1,0 +1,7 @@
+/* Point d'entrée Tailwind de la page de connexion (voir tailwind.config.js). */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Contrôles natifs (champs, barres de défilement) accordés au thème. */
+:root[data-theme="dark"] { color-scheme: dark; }
