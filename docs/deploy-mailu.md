@@ -1,14 +1,14 @@
-# Déploiement sur le VPS — sbbs-technology.com
+# Déploiement sur le VPS — example.com
 
-Serveur mail : `mail.sbbs-technology.com`, derrière nginx-proxy + acme-companion
-déjà en place sur le VPS. Adresses : `prenom@sbbs-technology.com`.
+Serveur mail : `webmail.example.com`, derrière nginx-proxy + acme-companion
+déjà en place sur le VPS. Adresses : `prenom@example.com`.
 
 ## 0. Prérequis
 
 - **Port 25 sortant ouvert** chez l'hébergeur. Test depuis le VPS :
   `nc -vz gmail-smtp-in.l.google.com 25`. Bloqué → ouvrir un ticket, sinon
   aucun mail ne part vers l'extérieur.
-- **Reverse DNS (PTR)** de l'IP du VPS → `mail.sbbs-technology.com`
+- **Reverse DNS (PTR)** de l'IP du VPS → `webmail.example.com`
   (console de l'hébergeur).
 - Docker + Docker Compose v2 récents (`docker compose version`).
 - Le dépôt poussé sur un dépôt git **privé**.
@@ -16,25 +16,25 @@ déjà en place sur le VPS. Adresses : `prenom@sbbs-technology.com`.
 
 ## 1. DNS
 
-À créer chez le registrar de `sbbs-technology.com` (`IP_DU_VPS` à remplacer) :
+À créer chez le registrar de `example.com` (`IP_DU_VPS` à remplacer) :
 
-| Type | Nom | Valeur |
-|---|---|---|
-| A | `mail` | `IP_DU_VPS` |
-| AAAA | `mail` | IPv6 du VPS (si disponible) |
-| MX | `@` | `mail.sbbs-technology.com` — priorité `10` dans son propre champ |
-| TXT | `@` | `v=spf1 mx -all` |
-| TXT | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:postmaster@sbbs-technology.com` |
-| TXT | `dkim._domainkey` | fourni par Mailu à l'étape 6 |
+| Type | Nom               | Valeur                                                      |
+| ---- | ----------------- | ----------------------------------------------------------- |
+| A    | `webmail`         | `IP_DU_VPS`                                                 |
+| AAAA | `webmail`         | IPv6 du VPS (si disponible)                                 |
+| MX   | `@`               | `webmail.example.com` — priorité `10` dans son propre champ |
+| TXT  | `@`               | `v=spf1 mx -all`                                            |
+| TXT  | `_dmarc`          | `v=DMARC1; p=quarantine; rua=mailto:postmaster@example.com` |
+| TXT  | `dkim._domainkey` | fourni par Mailu à l'étape 6                                |
 
 La plupart des interfaces DNS ont un champ « Priorité » séparé pour le MX :
 le contenu est alors le seul nom d'hôte, sans le `10` ni point final.
 
-Si `sbbs-technology.com` a déjà un enregistrement SPF (autre service d'envoi),
+Si `example.com` a déjà un enregistrement SPF (autre service d'envoi),
 fusionner plutôt que d'en créer un second : un seul `v=spf1` par nom.
 
-Vérifier : `dig +short mail.sbbs-technology.com` et
-`dig +short MX sbbs-technology.com`.
+Vérifier : `dig +short webmail.example.com` et
+`dig +short MX example.com`.
 
 ## 2. Préparer le VPS
 
@@ -62,15 +62,15 @@ docker inspect <conteneur-acme-companion> \
 
 ## 4. Compléter `mailu.env`
 
-Tout ce qui concerne `sbbs-technology.com` est déjà rempli. Reste à remplacer
+Tout ce qui concerne `example.com` est déjà rempli. Reste à remplacer
 chaque `CHANGE_ME` (l'indication est sur la ligne au-dessus) :
 
-| Variable | Valeur |
-|---|---|
-| `SECRET_KEY` | `openssl rand -base64 16` |
-| `INITIAL_ADMIN_PW` | `openssl rand -hex 16` — à noter |
-| `POSTGRES_PASSWORD`, `DB_PW`, `ROUNDCUBE_DB_PW` | `openssl rand -hex 16`, un chacun |
-| `PROXY_NETWORK`, `REAL_IP_FROM`, `FRONT_CERTS_DIR` | relevés à l'étape 3 |
+| Variable                                           | Valeur                            |
+| -------------------------------------------------- | --------------------------------- |
+| `SECRET_KEY`                                       | `openssl rand -base64 16`         |
+| `INITIAL_ADMIN_PW`                                 | `openssl rand -hex 16` — à noter  |
+| `POSTGRES_PASSWORD`, `DB_PW`, `ROUNDCUBE_DB_PW`    | `openssl rand -hex 16`, un chacun |
+| `PROXY_NETWORK`, `REAL_IP_FROM`, `FRONT_CERTS_DIR` | relevés à l'étape 3               |
 
 Ne jamais réutiliser les secrets du Mac. Contrôle :
 
@@ -88,30 +88,31 @@ docker compose up -d
 docker compose logs -f front admin antivirus
 ```
 
-- acme-companion obtient le certificat de `mail.sbbs-technology.com` en 1 à
+- acme-companion obtient le certificat de `webmail.example.com` en 1 à
   2 minutes. En attendant, `front` affiche « Missing cert or key file,
   disabling TLS » et une erreur `doveconf: Fatal ... ssl_cert` : normal au
   tout premier démarrage (voir Dépannage). Dès que le certificat est là,
   redémarrer `front` **une fois** :
 
   ```sh
-  ls -l <FRONT_CERTS_DIR>/mail.sbbs-technology.com.crt   # attendre qu'il existe
+  ls -l <FRONT_CERTS_DIR>/webmail.example.com.crt   # attendre qu'il existe
   docker compose restart front
   ```
 
   Les renouvellements suivants sont pris en compte sans redémarrage.
+
 - ClamAV télécharge ses signatures : jusqu'à 10 minutes avant `healthy`.
 - Pas de Node sur le serveur : le CSS du thème est déjà compilé.
 
 ## 6. Première configuration
 
-Sur <https://mail.sbbs-technology.com/admin>, avec
-`admin@sbbs-technology.com` et `INITIAL_ADMIN_PW` :
+Sur <https://webmail.example.com/admin>, avec
+`admin@example.com` et `INITIAL_ADMIN_PW` :
 
 1. Changer le mot de passe ; activer la 2FA si proposée.
-2. **Domaines → sbbs-technology.com → Générer les clés DKIM**, puis publier
+2. **Domaines → example.com → Générer les clés DKIM**, puis publier
    l'enregistrement `dkim._domainkey` affiché dans le DNS.
-3. Créer l'alias `postmaster@sbbs-technology.com` → `admin@sbbs-technology.com`
+3. Créer l'alias `postmaster@example.com` → `admin@example.com`
    (reçoit les rapports DMARC ; exigé par les RFC).
 4. Créer les comptes, puis un jeton d'authentification par client mail
    (`AUTH_REQUIRE_TOKENS=true` : le mot de passe du compte ne sert qu'au
@@ -120,23 +121,23 @@ Sur <https://mail.sbbs-technology.com/admin>, avec
 
 Configuration des clients mail :
 
-| | Serveur | Port | Sécurité |
-|---|---|---|---|
-| IMAP | `mail.sbbs-technology.com` | 993 | SSL/TLS |
-| SMTP | `mail.sbbs-technology.com` | 465 | SSL/TLS (ou 587 STARTTLS) |
-| Identifiant | adresse complète | | mot de passe = jeton |
+|             | Serveur               | Port | Sécurité                  |
+| ----------- | --------------------- | ---- | ------------------------- |
+| IMAP        | `webmail.example.com` | 993  | SSL/TLS                   |
+| SMTP        | `webmail.example.com` | 465  | SSL/TLS (ou 587 STARTTLS) |
+| Identifiant | adresse complète      |      | mot de passe = jeton      |
 
 ## 7. Vérifier
 
 Depuis une autre machine :
 
 ```sh
-nmap -p 25,110,143,465,587,993,995,4190,8080 mail.sbbs-technology.com
+nmap -p 25,110,143,465,587,993,995,4190,8080 webmail.example.com
 # ouverts : 25 465 587 993 995 — fermés : 110 143 4190 8080
 
-openssl s_client -connect mail.sbbs-technology.com:993 \
-  -servername mail.sbbs-technology.com </dev/null | grep -E "subject=|Verify"
-openssl s_client -starttls smtp -connect mail.sbbs-technology.com:587 \
+openssl s_client -connect webmail.example.com:993 \
+  -servername webmail.example.com </dev/null | grep -E "subject=|Verify"
+openssl s_client -starttls smtp -connect webmail.example.com:587 \
   </dev/null | grep Verify            # Verify return code: 0 (ok)
 ```
 
@@ -199,18 +200,18 @@ ces ports : les lier à `127.0.0.1` ne coupe pas le webmail. Si `8080` / `8443`
 sont eux-mêmes pris (`ss -ltnp | grep -E ':8080|:8443'`), choisir d'autres
 ports.
 
-**`FileNotFoundError: ... '/certs/mail.sbbs-technology.com'`** puis
+**`FileNotFoundError: ... '/certs/webmail.example.com'`** puis
 **`doveconf: Fatal: ... ssl_cert: Can't open file /certs/.../fullchain.pem`**
 
 Le certificat n'existe pas encore (premier démarrage), et `mailu.env` vise
-`mail.sbbs-technology.com/fullchain.pem`. Mailu surveille le *dossier* du
+`webmail.example.com/fullchain.pem`. Mailu surveille le _dossier_ du
 certificat : absent, sa surveillance plante et il ne verra jamais arriver le
 certificat. Utiliser les liens qu'acme-companion pose à la racine de son
 répertoire (toujours présente) :
 
 ```sh
-sed -i -e 's|^TLS_CERT_FILENAME=.*|TLS_CERT_FILENAME=mail.sbbs-technology.com.crt|' \
-       -e 's|^TLS_KEYPAIR_FILENAME=.*|TLS_KEYPAIR_FILENAME=mail.sbbs-technology.com.key|' mailu.env
+sed -i -e 's|^TLS_CERT_FILENAME=.*|TLS_CERT_FILENAME=webmail.example.com.crt|' \
+       -e 's|^TLS_KEYPAIR_FILENAME=.*|TLS_KEYPAIR_FILENAME=webmail.example.com.key|' mailu.env
 docker compose --env-file mailu.env up -d
 ```
 
@@ -219,7 +220,7 @@ Si le certificat n'arrive pas après quelques minutes :
 
 ```sh
 docker logs <conteneur-acme-companion> 2>&1 | grep -i sbbs   # erreurs Let's Encrypt
-dig +short mail.sbbs-technology.com                          # doit donner l'IP du VPS
+dig +short webmail.example.com                          # doit donner l'IP du VPS
 docker inspect mailu-front-1 -f '{{range .Config.Env}}{{println .}}{{end}}' | grep -E 'VIRTUAL|LETSENCRYPT'
 ls -l <FRONT_CERTS_DIR>                                       # bon répertoire ?
 ```

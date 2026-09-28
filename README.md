@@ -5,7 +5,7 @@ banc d'essai avant un déploiement sur un VPS.
 
 ## Architecture
 
-Flux sur le serveur (`mail.sbbs-technology.com`). En local, nginx-proxy est
+Flux sur le serveur (`webmail.example.com`). En local, nginx-proxy est
 absent : le navigateur joint `front` directement sur 80.
 
 ```mermaid
@@ -78,7 +78,7 @@ mailu/
   compose.yml        définition de la stack (13 services)
   mailu.env          valeurs de configuration (--env-file) — SECRETS, ignoré par git
   mailu.env.example  modèle sans secrets, versionné
-  mailu.env.server.example  modèle serveur (sbbs-technology.com), voir docs/deploy-mailu.md
+  mailu.env.server.example  modèle serveur (example.com), voir docs/deploy-mailu.md
   overrides/         surcharges de config par service, montées en lecture seule
                      (overrides/roundcube/skins/sbbs : thème du webmail)
   postgres/initdb/   crée les rôles et bases mailu + roundcube au premier démarrage
@@ -104,15 +104,15 @@ cd mailu && docker compose --env-file mailu.env up -d
 `mailu.env` ne contient que des **valeurs**. C'est `compose.yml` qui décide
 quel service reçoit quelle variable, dans ses blocs `environment:` :
 
-| Bloc / service      | Variables reçues                                          |
-|---------------------|-----------------------------------------------------------|
-| `x-mailu-env`       | config Mailu commune (domaine, TLS, limites, web…)        |
-| `admin`             | commun + `DB_*` + `INITIAL_ADMIN_*`                       |
-| `webmail`           | commun + `ROUNDCUBE_DB_*` + `ROUNDCUBE_PLUGINS`           |
-| `front`             | commun + `VIRTUAL_*`, `LETSENCRYPT_HOST`, `TLS_*_FILENAME`|
-| `fetchmail`         | commun + `FETCHMAIL_DELAY`                                |
-| `resolver`, `imap`, `smtp`, `antispam` | commun seulement                       |
-| `database`          | `POSTGRES_PASSWORD`, `DB_*`, `ROUNDCUBE_DB_*` (aucune config Mailu) |
+| Bloc / service                         | Variables reçues                                                    |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| `x-mailu-env`                          | config Mailu commune (domaine, TLS, limites, web…)                  |
+| `admin`                                | commun + `DB_*` + `INITIAL_ADMIN_*`                                 |
+| `webmail`                              | commun + `ROUNDCUBE_DB_*` + `ROUNDCUBE_PLUGINS`                     |
+| `front`                                | commun + `VIRTUAL_*`, `LETSENCRYPT_HOST`, `TLS_*_FILENAME`          |
+| `fetchmail`                            | commun + `FETCHMAIL_DELAY`                                          |
+| `resolver`, `imap`, `smtp`, `antispam` | commun seulement                                                    |
+| `database`                             | `POSTGRES_PASSWORD`, `DB_*`, `ROUNDCUBE_DB_*` (aucune config Mailu) |
 
 Dans ces blocs :
 
@@ -187,7 +187,7 @@ machine. Chaque port mail est une variable de `mailu.env` (`SMTP_PORT`,
 (voir « Sécurité »).
 
 | Service     | Port | Service     | Port |
-|-------------|------|-------------|------|
+| ----------- | ---- | ----------- | ---- |
 | http        | 80   | pop3        | 110  |
 | https       | 443  | pop3s       | 995  |
 | smtp        | 25   | imap        | 143  |
@@ -236,7 +236,7 @@ les mails en attente :
 
 ## Passage en production
 
-Procédure pas à pas pour `sbbs-technology.com` : [docs/deploy-mailu.md](docs/deploy-mailu.md).
+Procédure pas à pas pour `example.com` : [docs/deploy-mailu.md](docs/deploy-mailu.md).
 
 Sur le serveur, Mailu tourne derrière nginx-proxy + acme-companion, déjà en
 place. Tout se règle dans le `mailu.env` du serveur ; `compose.yml` ne change
@@ -257,8 +257,8 @@ Dans `mailu.env` du serveur :
   - `PROXY_NETWORK` = le réseau de nginx-proxy (`docker network ls`).
 - TLS mail avec le certificat d'acme-companion :
   - `FRONT_CERTS_DIR` = le répertoire des certificats d'acme-companion sur
-    l'hôte (pour un volume nommé : `docker volume inspect <volume> -f
-    '{{.Mountpoint}}'`) ;
+    l'hôte ; pour un volume nommé :
+    `docker volume inspect <volume> -f '{{.Mountpoint}}'` ;
   - `TLS_FLAVOR=mail`, `TLS_CERT_FILENAME=<domaine>.crt`,
     `TLS_KEYPAIR_FILENAME=<domaine>.key` (liens posés par acme-companion à la
     racine de son répertoire ; pas `<domaine>/fullchain.pem`, dont Mailu
@@ -333,22 +333,22 @@ version majeure de PostgreSQL (16 → 17) demande un dump / restore.
 
 **Données stockées** — seuls les mots de passe sont protégés par Mailu :
 
-| Donnée | Chiffrée ? | Détail |
-|---|---|---|
-| Mots de passe des comptes | ✅ hachés | bcrypt (`$bcrypt-sha2`) : vérifiables, pas récupérables |
-| Mails (`mail/`) | ❌ | lisibles tels quels ; `COMPRESSION=gzip` compresse, ne chiffre pas |
-| PostgreSQL (`pgdata`) | ❌ | comptes, alias, carnet d'adresses, préférences Roundcube |
-| Clés DKIM, `mailu.env` | ❌ | protégés par les seules permissions (`chmod 600`) |
-| Sauvegardes | ⚠️ | chiffrées seulement avec `AGE_RECIPIENT` |
+| Donnée                    | Chiffrée ? | Détail                                                             |
+| ------------------------- | ---------- | ------------------------------------------------------------------ |
+| Mots de passe des comptes | ✅ hachés  | bcrypt (`$bcrypt-sha2`) : vérifiables, pas récupérables            |
+| Mails (`mail/`)           | ❌         | lisibles tels quels ; `COMPRESSION=gzip` compresse, ne chiffre pas |
+| PostgreSQL (`pgdata`)     | ❌         | comptes, alias, carnet d'adresses, préférences Roundcube           |
+| Clés DKIM, `mailu.env`    | ❌         | protégés par les seules permissions (`chmod 600`)                  |
+| Sauvegardes               | ⚠️         | chiffrées seulement avec `AGE_RECIPIENT`                           |
 
 **Données en transit** :
 
-| Trajet | Local | Serveur |
-|---|---|---|
-| Client mail ↔ Mailu (IMAP / SMTP) | ❌ `TLS_FLAVOR=notls` | ✅ TLS (465 / 587 / 993 / 995) avec `TLS_FLAVOR=mail` |
-| Navigateur ↔ webmail / admin | ❌ HTTP | ✅ HTTPS terminé par nginx-proxy |
-| Mailu ↔ autres serveurs mail | — (port 25 bloqué) | ✅ opportuniste, ou obligatoire avec `OUTBOUND_TLS_LEVEL=encrypt` |
-| Entre conteneurs (proxy → front, admin → PostgreSQL) | ❌ | ❌, sur des réseaux Docker internes non exposés |
+| Trajet                                               | Local                 | Serveur                                                           |
+| ---------------------------------------------------- | --------------------- | ----------------------------------------------------------------- |
+| Client mail ↔ Mailu (IMAP / SMTP)                    | ❌ `TLS_FLAVOR=notls` | ✅ TLS (465 / 587 / 993 / 995) avec `TLS_FLAVOR=mail`             |
+| Navigateur ↔ webmail / admin                         | ❌ HTTP               | ✅ HTTPS terminé par nginx-proxy                                  |
+| Mailu ↔ autres serveurs mail                         | — (port 25 bloqué)    | ✅ opportuniste, ou obligatoire avec `OUTBOUND_TLS_LEVEL=encrypt` |
+| Entre conteneurs (proxy → front, admin → PostgreSQL) | ❌                    | ❌, sur des réseaux Docker internes non exposés                   |
 
 **Configuration conseillée sur le serveur** :
 
@@ -531,8 +531,12 @@ qu'il a déjà changé n'est pas touché.
 
    Produit `overrides/roundcube/sbbs-defaults.inc.php`, à commiter. Réglages
    propres à un compte exclus (jeton client, dossiers personnels).
-3. Appliquer : `docker compose --env-file mailu.env up -d --force-recreate
-   webmail` (sur le serveur : après `git pull`, même commande).
+
+3. Appliquer (sur le serveur : après `git pull`, même commande) :
+
+   ```sh
+   docker compose --env-file mailu.env up -d --force-recreate webmail
+   ```
 
 À chaque démarrage, le service ponctuel `webmail-config` copie
 `overrides/roundcube/*.inc.php` dans le volume `webmail-overrides`
